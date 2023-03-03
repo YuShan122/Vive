@@ -197,8 +197,8 @@ target_link_libraries(lighthouse_tf_plus  ${catkin_LIBRARIES})
 # add_executable(survivie-cli src/survivie-cli.cpp)
 # target_link_libraries(survivie-cli ${LIBS} ${catkin_LIBRARIES})
 
-add_executable(ros_tools_maincc src/ros_tools_maincc.cpp)
-target_link_libraries(ros_tools_maincc ${LIBS}  ${catkin_LIBRARIES} )
+# add_executable(ros_tools_maincc src/ros_tools_maincc.cpp)
+# target_link_libraries(ros_tools_maincc ${LIBS}  ${catkin_LIBRARIES} )
 
 # add_executable(api_test src/api_test.cpp)
 # target_link_libraries(api_test ${LIBS}  ${catkin_LIBRARIES} )
@@ -215,6 +215,10 @@ target_link_libraries(vive_calibrate ${LIBS}  ${catkin_LIBRARIES} )
 
 add_executable(vive_localization src/vive_localization.cpp)
 target_link_libraries(vive_localization ${LIBS}  ${catkin_LIBRARIES} )
+
+add_executable(vive_localization_plus src/vive_localization_plus.cpp)
+add_dependencies(vive_localization_plus ${catkin_EXPORTED_TARGETS})
+target_link_libraries(vive_localization_plus ${LIBS}  ${catkin_LIBRARIES} )
 
 # add_executable(vive include/yamlsetup.h)
 # target_link_libraries(vive ${YAMLCPP_LIBRARIES}  ${catkin_LIBRARIES} )
