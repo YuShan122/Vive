@@ -18,7 +18,7 @@ void intHandler(int dummy) {
 
 
 
-VIVEPOSE LH0, LH1;
+VIVEPOSE LH0, LH1, LH2;
 
 
 Vive::~Vive()
@@ -33,7 +33,8 @@ Vive::~Vive()
 }
 
 void Vive::initialize() {
-    pose_pub = nh.advertise<geometry_msgs::PoseStamped>("vive_pose",10);
+    pose_pub = nh.advertise<geometry_msgs::PoseStamped>("vive_pose", 10);
+    vel_pub = nh.advertise<geometry_msgs::Twist>("vive_vel", 10);
     nh_local.getParam("/LH0_x", LH0.x);
     nh_local.getParam("/LH0_y", LH0.y);
     nh_local.getParam("/LH0_z", LH0.z);
@@ -49,6 +50,14 @@ void Vive::initialize() {
     nh_local.getParam("/LH1_X", LH1.X);
     nh_local.getParam("/LH1_Y", LH1.Y);
     nh_local.getParam("/LH1_Z", LH1.Z);
+
+    nh_local.getParam("/LH2_x", LH2.x);
+    nh_local.getParam("/LH2_y", LH2.y);
+    nh_local.getParam("/LH2_z", LH2.z);
+    nh_local.getParam("/LH2_W", LH2.W);
+    nh_local.getParam("/LH2_X", LH2.X);
+    nh_local.getParam("/LH2_Y", LH2.Y);
+    nh_local.getParam("/LH2_Z", LH2.Z);
     nh_local.getParam("/freq", freq);
     nh_local.getParam("/unit", unit);
 
@@ -56,6 +65,8 @@ void Vive::initialize() {
     transform_LH0ToMap0.setRotation(tf::Quaternion(LH0.X, LH0.Y, LH0.Z, LH0.W));
     transform_LH1ToMap1.setOrigin(tf::Vector3(LH1.x, LH1.y, LH1.z));
     transform_LH1ToMap1.setRotation(tf::Quaternion(LH1.X, LH1.Y, LH1.Z, LH1.W));
+    transform_LH2ToMap2.setOrigin(tf::Vector3(LH2.x, LH2.y, LH2.z));
+    transform_LH2ToMap2.setRotation(tf::Quaternion(LH2.X, LH2.Y, LH2.Z, LH2.W));
 
     // timer_ = nh.createTimer(ros::Duration(1.0 / freq), &Vive::timerCallback, this, false, false);
     // timer_.setPeriod(ros::Duration(1.0 / freq), false);
@@ -74,6 +85,15 @@ void Vive::Publisher_pose(tf::StampedTransform tf_pose)
     pose_.header.stamp = ros::Time::now();
     pose_.header.frame_id = "map";
     pose_pub.publish(pose_);
+}
+
+void Vive::Publisher_vel(SurviveVelocity vel)
+{
+    geometry_msgs::Twist vel_;
+    vel_.linear.x = vel.Pos[0];
+    vel_.linear.y = vel.Pos[1];
+    vel_.angular.z = vel.AxisAngleRot[2];
+    vel_pub.publish(vel_);
 }
 
 bool Vive::survive_start(int argc, char** argv)
@@ -109,7 +129,8 @@ void Vive::survive_thread()
                 survive_simple_object_get_latest_pose(it, &pose);
                 if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT) {
                     survive_simple_object_get_latest_velocity(it, &velocity);
-                    printf("%s velocity : \nx : %f\ny : %f\nz : %f\n",survive_simple_object_name(it), velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
+                    Publisher_vel(velocity);
+                    printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it), velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
                     transform_surviveWorldToTracker.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
                     transform_surviveWorldToTracker.setRotation(tf::Quaternion(pose.Rot[1], pose.Rot[2], pose.Rot[3], pose.Rot[0]));
                 }
@@ -122,28 +143,38 @@ void Vive::survive_thread()
                         transform_surviveWorldToLH1.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
                         transform_surviveWorldToLH1.setRotation(tf::Quaternion(pose.Rot[1], pose.Rot[2], pose.Rot[3], pose.Rot[0]));
                     }
+                    if (strcmp(survive_simple_serial_number(it), "LHB-2BEE096A")) {
+                        transform_surviveWorldToLH2.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
+                        transform_surviveWorldToLH2.setRotation(tf::Quaternion(pose.Rot[1], pose.Rot[2], pose.Rot[3], pose.Rot[0]));
+                    }
                 }
             }
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToTracker, ros::Time::now(), "survive_world", "tracker"));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH0, ros::Time::now(), "survive_world", "LH0"));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH1, ros::Time::now(), "survive_world", "LH1"));
+            br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH2, ros::Time::now(), "survive_world", "LH2"));
             br.sendTransform(tf::StampedTransform(transform_LH0ToMap0, ros::Time::now(), "LH0", "map0"));
             br.sendTransform(tf::StampedTransform(transform_LH1ToMap1, ros::Time::now(), "LH1", "map1"));
+            br.sendTransform(tf::StampedTransform(transform_LH2ToMap2, ros::Time::now(), "LH2", "map2"));
             try {
                 listener.lookupTransform("map0", "tracker", ros::Time(0), transform_map0ToTracker);
                 listener.lookupTransform("map1", "tracker", ros::Time(0), transform_map1ToTracker);
+                listener.lookupTransform("map2", "tracker", ros::Time(0), transform_map2ToTracker);
             }
             catch (tf::TransformException& ex) {
                 ROS_ERROR("%s", ex.what());
             }
             printf("transform: map0 to tracker\n");
-            printf("%f, %f, %f\n", transform_map0ToTracker.getOrigin().x()*unit,
-                transform_map0ToTracker.getOrigin().y()*unit, transform_map0ToTracker.getOrigin().z()*unit);
+            printf("%f, %f, %f\n", transform_map0ToTracker.getOrigin().x() * unit,
+                transform_map0ToTracker.getOrigin().y() * unit, transform_map0ToTracker.getOrigin().z() * unit);
             printf("transform: map1 to tracker\n");
-            printf("%f, %f, %f\n", transform_map1ToTracker.getOrigin().x()*unit,
-                transform_map1ToTracker.getOrigin().y()*unit, transform_map1ToTracker.getOrigin().z()*unit);
+            printf("%f, %f, %f\n", transform_map1ToTracker.getOrigin().x() * unit,
+                transform_map1ToTracker.getOrigin().y() * unit, transform_map1ToTracker.getOrigin().z() * unit);
+            printf("transform: map2 to tracker\n");
+            printf("%f, %f, %f\n", transform_map2ToTracker.getOrigin().x() * unit,
+                transform_map2ToTracker.getOrigin().y() * unit, transform_map2ToTracker.getOrigin().z() * unit);
             break;
-            }
+        }
         }
         Publisher_pose(transform_map0ToTracker);
         rate.sleep();
@@ -166,7 +197,7 @@ int main(int argc, char** argv) {
     Vive vive(nh, nh_local);
     vive.initialize();
     bool start_device_ok = vive.survive_start(argc, argv);
-    start_device_ok = 1 ? printf("successfully start timer\n") : printf("start error\n") ;
+    start_device_ok = 1 ? printf("successfully start timer\n") : printf("start error\n");
 
     vive.survive_thread();
     return 0;

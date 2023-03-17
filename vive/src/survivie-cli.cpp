@@ -22,8 +22,8 @@ void intHandler(int dummy)
 
 #endif
 
-SURVIVE_EXPORT void button_process(SurviveObject *so, enum SurviveInputEvent eventType, enum SurviveButton buttonId,
-                                   const enum SurviveAxis *axisIds, const SurviveAxisVal_t *axisVals)
+SURVIVE_EXPORT void button_process(SurviveObject* so, enum SurviveInputEvent eventType, enum SurviveButton buttonId,
+    const enum SurviveAxis* axisIds, const SurviveAxisVal_t* axisVals)
 {
     if (buttonId == SURVIVE_BUTTON_MENU)
     {
@@ -31,13 +31,13 @@ SURVIVE_EXPORT void button_process(SurviveObject *so, enum SurviveInputEvent eve
     }
 }
 
-SURVIVE_EXPORT void pose_process(SurviveObject *so, survive_long_timecode timecode, const SurvivePose *pose)
+SURVIVE_EXPORT void pose_process(SurviveObject* so, survive_long_timecode timecode, const SurvivePose* pose)
 {
     printf("pose => ");
     printf("position : %f, %f, %f    ||    orientation : %f, %f, %f, %f\n", pose->Pos[0], pose->Pos[1], pose->Pos[2],
-           pose->Rot[0], pose->Rot[1], pose->Rot[2], pose->Rot[3]);
+        pose->Rot[0], pose->Rot[1], pose->Rot[2], pose->Rot[3]);
 }
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
 #ifdef __linux__
     signal(SIGINT, intHandler);
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 
     ros::init(argc, argv, "survivie-cli");
     ros::NodeHandle nh;
-    SurviveContext *ctx = survive_init(argc, argv);
+    SurviveContext* ctx = survive_init(argc, argv);
     if (ctx == 0) // implies -help or similiar
     {
         return 0;

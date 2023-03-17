@@ -216,9 +216,16 @@ target_link_libraries(vive_calibrate ${LIBS}  ${catkin_LIBRARIES} )
 add_executable(vive_localization src/vive_localization.cpp)
 target_link_libraries(vive_localization ${LIBS}  ${catkin_LIBRARIES} )
 
+add_executable(vive_localization_multi src/vive_localization_multi.cpp)
+target_link_libraries(vive_localization_multi ${LIBS}  ${catkin_LIBRARIES} )
+
 add_executable(vive_localization_plus src/vive_localization_plus.cpp)
 add_dependencies(vive_localization_plus ${catkin_EXPORTED_TARGETS})
 target_link_libraries(vive_localization_plus ${LIBS}  ${catkin_LIBRARIES} )
+
+# add_executable(predict_enemy_vel src/predict_enemy_vel.cpp)
+# add_dependencies(predict_enemy_vel ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(predict_enemy_vel ${LIBS}  ${catkin_LIBRARIES} )
 
 # add_executable(vive include/yamlsetup.h)
 # target_link_libraries(vive ${YAMLCPP_LIBRARIES}  ${catkin_LIBRARIES} )

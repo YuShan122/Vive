@@ -36,7 +36,7 @@ void Vive::initialize()
     timer_.start();
 }
 
-bool Vive::initializeParams(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+bool Vive::initializeParams(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res)
 {
     bool get_param_ok = true;
     bool prev_active = p_active_;
@@ -90,7 +90,7 @@ bool Vive::initializeParams(std_srvs::Empty::Request &req, std_srvs::Empty::Resp
     else
     {
         ROS_WARN_STREAM("[lighthouse_localization] : "
-                        << "set param failed");
+            << "set param failed");
     }
     return true;
 }
@@ -102,17 +102,17 @@ EulerPose Vive::lookup_tf(std::string target, std::string source)
     {
         listener.lookupTransform(source, target, ros::Time(0), transform);
     }
-    catch (const tf::TransformException &ex)
+    catch (const tf::TransformException& ex)
     {
         try
         {
             listener.lookupTransform(source, target, ros::Time(0), transform);
         }
-        catch (const tf::TransformException &ex)
+        catch (const tf::TransformException& ex)
         {
             std::cout << "lookup_TF => "
-                      << "target : " << target << " | "
-                      << "source : " << source << endl;
+                << "target : " << target << " | "
+                << "source : " << source << endl;
             ROS_WARN_STREAM(ex.what());
         }
     }
@@ -144,14 +144,14 @@ EulerPose Vive::calculate_the_origin()
         listener.lookupTransform(lh_parent_frame_, lh_origin_frame_prefix_ + std::to_string(1), ros::Time(0), origin_1);
         listener.lookupTransform(lh_parent_frame_, lh_origin_frame_prefix_ + std::to_string(2), ros::Time(0), origin_2);
     }
-    catch (const tf::TransformException &ex)
+    catch (const tf::TransformException& ex)
     {
         try
         {
             listener.lookupTransform(lh_parent_frame_, lh_origin_frame_prefix_ + std::to_string(1), ros::Time(0), origin_1);
             listener.lookupTransform(lh_parent_frame_, lh_origin_frame_prefix_ + std::to_string(2), ros::Time(0), origin_2);
         }
-        catch (const tf::TransformException &ex)
+        catch (const tf::TransformException& ex)
         {
             std::cout << "calculated the origin => lookup tf " << endl;
             // std::cout << "lookup_TF => "
@@ -241,15 +241,15 @@ void Vive::publish_tf(std::string target_frame, std::string source_frame, EulerP
     lh_broadcaster.sendTransform(trans_);
 }
 
-void Vive::timerCallback(const ros::TimerEvent &e)
+void Vive::timerCallback(const ros::TimerEvent& e)
 {
     if (!check_survive_tf)
     {
         ROS_WARN_STREAM("[lighthouse_localization] : "
-                        << " wait for survive tf tree");
+            << " wait for survive tf tree");
 
         bool ok_1 = false, ok_2 = false;
-        std::string *error_msg1, *error_msg2;
+        std::string* error_msg1, * error_msg2;
         ok_1 = listener.canTransform(survive_lh1_frame_, survive_world_frame_, ros::Time(0), error_msg1);
         ok_2 = listener.canTransform(survive_lh2_frame_, survive_world_frame_, ros::Time(0), error_msg2);
 
@@ -275,9 +275,9 @@ void Vive::timerCallback(const ros::TimerEvent &e)
         if (!check_lighthouse_tf)
         {
             ROS_WARN_STREAM("[lighthouse_localization] : "
-                            << "wait for tf from map to lighthouse");
+                << "wait for tf from map to lighthouse");
             bool ok_1 = false, ok_2 = false;
-            std::string *error_msg1, *error_msg2;
+            std::string* error_msg1, * error_msg2;
             ok_1 = listener.canTransform(lh_world_frame_, lh_parent_frame_, ros::Time(0), error_msg1);
             ok_2 = listener.canTransform(survive_tracker_frame_, survive_world_frame_, ros::Time(0), error_msg2);
             if (ok_1 && ok_2)
@@ -297,7 +297,7 @@ void Vive::timerCallback(const ros::TimerEvent &e)
     }
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     ros::init(argc, argv, "lighthouse_tf");
     ros::NodeHandle nh("");

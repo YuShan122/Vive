@@ -45,7 +45,7 @@ public:
     Vive(ros::NodeHandle nh, ros::NodeHandle nh_local);
     ~Vive();
     void initialize();
-    bool initializeParams(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+    bool initializeParams(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
 
 private:
     ros::NodeHandle nh_;
@@ -56,7 +56,7 @@ private:
     ros::Publisher lh_2_pub_;
     ros::Publisher tracker_pub_;
     ros::Timer timer_;
-    void timerCallback(const ros::TimerEvent &e);
+    void timerCallback(const ros::TimerEvent& e);
 
     tf::TransformBroadcaster lh_broadcaster;
     tf::TransformListener listener;

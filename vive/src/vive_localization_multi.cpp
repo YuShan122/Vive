@@ -41,11 +41,21 @@ tf::StampedTransform transform_LH2ToMap2;
 tf::StampedTransform transform_surviveWorldToLH0;
 tf::StampedTransform transform_surviveWorldToLH1;
 tf::StampedTransform transform_surviveWorldToLH2;
-tf::StampedTransform transform_surviveWorldToTracker;
-tf::StampedTransform transform_map0ToTracker;
-tf::StampedTransform transform_map1ToTracker;
-tf::StampedTransform transform_map2ToTracker;
+tf::StampedTransform transform_surviveWorldToTracker_A;
+tf::StampedTransform transform_surviveWorldToTracker_B;
+tf::StampedTransform transform_map0ToTracker_A;
+tf::StampedTransform transform_map1ToTracker_A;
+tf::StampedTransform transform_map2ToTracker_A;
+tf::StampedTransform transform_map0ToTracker_B;
+tf::StampedTransform transform_map1ToTracker_B;
+tf::StampedTransform transform_map2ToTracker_B;
 tf::StampedTransform transform_mapToTracker;
+
+std::string tracker_SN_A = "LHR-94135635";
+std::string tracker_SN_B = "LHR-15565625";
+std::string tracker_SN_C = "LHR-662B1E75";
+std::string tracker_SN_D = "LHR-38203A4C";
+std::string tracker_SN_E = "LHR-E833C29B";
 
 static void log_fn(SurviveSimpleContext* actx, SurviveLogLevel logLevel, const char* msg) {
     fprintf(stderr, "(%7.3f) SimpleApi: %s\n", survive_simple_run_time(actx), msg);
@@ -101,25 +111,25 @@ void deleteParam(ros::NodeHandle nh_)
 geometry_msgs::PoseStamped avg_pose(tf::TransformBroadcaster br_) {
     geometry_msgs::PoseStamped pose_avg;
     tf::Quaternion q;
-    q = transform_map0ToTracker.getRotation().operator/(3).operator+
-        (transform_map1ToTracker.getRotation().operator/(3)).operator+
-        (transform_map2ToTracker.getRotation().operator/(3));
+    q = transform_map0ToTracker_A.getRotation().operator/(3).operator+
+        (transform_map1ToTracker_A.getRotation().operator/(3)).operator+
+        (transform_map2ToTracker_A.getRotation().operator/(3));
     pose_avg.pose.orientation.w = q.getW();
     pose_avg.pose.orientation.x = q.getX();
     pose_avg.pose.orientation.y = q.getY();
     pose_avg.pose.orientation.z = q.getZ();
     pose_avg.pose.position.x = (double)(
-        transform_map0ToTracker.getOrigin().getX() +
-        transform_map1ToTracker.getOrigin().getX() +
-        transform_map2ToTracker.getOrigin().getX()) / 3;
+        transform_map0ToTracker_A.getOrigin().getX() +
+        transform_map1ToTracker_A.getOrigin().getX() +
+        transform_map2ToTracker_A.getOrigin().getX()) / 3;
     pose_avg.pose.position.y = (double)(
-        transform_map0ToTracker.getOrigin().getY() +
-        transform_map1ToTracker.getOrigin().getY() +
-        transform_map2ToTracker.getOrigin().getY()) / 3;
+        transform_map0ToTracker_A.getOrigin().getY() +
+        transform_map1ToTracker_A.getOrigin().getY() +
+        transform_map2ToTracker_A.getOrigin().getY()) / 3;
     pose_avg.pose.position.z = (double)(
-        transform_map0ToTracker.getOrigin().getZ() +
-        transform_map1ToTracker.getOrigin().getZ() +
-        transform_map2ToTracker.getOrigin().getZ()) / 3;
+        transform_map0ToTracker_A.getOrigin().getZ() +
+        transform_map1ToTracker_A.getOrigin().getZ() +
+        transform_map2ToTracker_A.getOrigin().getZ()) / 3;
     pose_avg.header.stamp = ros::Time::now();
     pose_avg.header.frame_id = "map";
 
@@ -180,8 +190,16 @@ int main(int argc, char** argv) {
                 if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT) {
                     survive_simple_object_get_latest_velocity(it, &velocity);
                     // printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it), velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
-                    transform_surviveWorldToTracker.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
-                    transform_surviveWorldToTracker.setRotation(tf::Quaternion(pose.Rot[1], pose.Rot[2], pose.Rot[3], pose.Rot[0]));
+                    if(strcmp(survive_simple_serial_number(it), tracker_SN_A.c_str()) == 0)
+                    {
+                        transform_surviveWorldToTracker_A.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
+                        transform_surviveWorldToTracker_A.setRotation(tf::Quaternion(pose.Rot[1], pose.Rot[2], pose.Rot[3], pose.Rot[0]));
+                    }
+                    else if(strcmp(survive_simple_serial_number(it), tracker_SN_B.c_str()) == 0)
+                    {
+                        transform_surviveWorldToTracker_B.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
+                        transform_surviveWorldToTracker_B.setRotation(tf::Quaternion(pose.Rot[1], pose.Rot[2], pose.Rot[3], pose.Rot[0]));
+                    }
                 }
                 else if (survive_simple_object_get_type(it) == SurviveSimpleObject_LIGHTHOUSE) {
                     if (strcmp(survive_simple_serial_number(it), "LHB-400B1A3E") == 0) {
@@ -198,7 +216,8 @@ int main(int argc, char** argv) {
                     }
                 }
             }
-            br.sendTransform(tf::StampedTransform(transform_surviveWorldToTracker, ros::Time::now(), "survive_world", "tracker"));
+            br.sendTransform(tf::StampedTransform(transform_surviveWorldToTracker_A, ros::Time::now(), "survive_world", "tracker_A"));
+            br.sendTransform(tf::StampedTransform(transform_surviveWorldToTracker_B, ros::Time::now(), "survive_world", "tracker_B"));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH0, ros::Time::now(), "survive_world", "LH0"));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH1, ros::Time::now(), "survive_world", "LH1"));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH2, ros::Time::now(), "survive_world", "LH2"));
@@ -206,32 +225,46 @@ int main(int argc, char** argv) {
             br.sendTransform(tf::StampedTransform(transform_LH1ToMap1, ros::Time::now(), "LH1", "map1"));
             br.sendTransform(tf::StampedTransform(transform_LH2ToMap2, ros::Time::now(), "LH2", "map2"));
             try {
-                listener.lookupTransform("map0", "tracker", ros::Time(0), transform_map0ToTracker);
-                listener.lookupTransform("map1", "tracker", ros::Time(0), transform_map1ToTracker);
-                listener.lookupTransform("map2", "tracker", ros::Time(0), transform_map2ToTracker);
+                listener.lookupTransform("map0", "tracker_A", ros::Time(0), transform_map0ToTracker_A);
+                listener.lookupTransform("map1", "tracker_A", ros::Time(0), transform_map1ToTracker_A);
+                listener.lookupTransform("map2", "tracker_A", ros::Time(0), transform_map2ToTracker_A);
+                listener.lookupTransform("map0", "tracker_B", ros::Time(0), transform_map0ToTracker_B);
+                listener.lookupTransform("map1", "tracker_B", ros::Time(0), transform_map1ToTracker_B);
+                listener.lookupTransform("map2", "tracker_B", ros::Time(0), transform_map2ToTracker_B);
             }
             catch (tf::TransformException& ex) {
                 ROS_ERROR("%s", ex.what());
             }
-            printf("transform: map0 to tracker\n");
-            printf("%f, %f, %f\n", transform_map0ToTracker.getOrigin().x() * unit,
-                transform_map0ToTracker.getOrigin().y() * unit, transform_map0ToTracker.getOrigin().z() * unit);
-            printf("transform: map1 to tracker\n");
-            printf("%f, %f, %f\n", transform_map1ToTracker.getOrigin().x() * unit,
-                transform_map1ToTracker.getOrigin().y() * unit, transform_map1ToTracker.getOrigin().z() * unit);
-            printf("transform: map2 to tracker\n");
-            printf("%f, %f, %f\n", transform_map2ToTracker.getOrigin().x() * unit,
-                transform_map2ToTracker.getOrigin().y() * unit, transform_map2ToTracker.getOrigin().z() * unit);
+            printf("transform: map0 to tracker_A\n");
+            printf("%f, %f, %f\n", transform_map0ToTracker_A.getOrigin().x() * unit,
+                transform_map0ToTracker_A.getOrigin().y() * unit, transform_map0ToTracker_A.getOrigin().z() * unit);
+            printf("transform: map1 to tracker_A\n");
+            printf("%f, %f, %f\n", transform_map1ToTracker_A.getOrigin().x() * unit,
+                transform_map1ToTracker_A.getOrigin().y() * unit, transform_map1ToTracker_A.getOrigin().z() * unit);
+            printf("transform: map2 to tracker_A\n");
+            printf("%f, %f, %f\n", transform_map2ToTracker_A.getOrigin().x() * unit,
+                transform_map2ToTracker_A.getOrigin().y() * unit, transform_map2ToTracker_A.getOrigin().z() * unit);
+            
+            printf("transform: map0 to tracker_B\n");
+            printf("%f, %f, %f\n", transform_map0ToTracker_B.getOrigin().x() * unit,
+                transform_map0ToTracker_B.getOrigin().y() * unit, transform_map0ToTracker_B.getOrigin().z() * unit);
+            printf("transform: map1 to tracker_B\n");
+            printf("%f, %f, %f\n", transform_map1ToTracker_B.getOrigin().x() * unit,
+                transform_map1ToTracker_B.getOrigin().y() * unit, transform_map1ToTracker_B.getOrigin().z() * unit);
+            printf("transform: map2 to tracker_B\n");
+            printf("%f, %f, %f\n", transform_map2ToTracker_B.getOrigin().x() * unit,
+                transform_map2ToTracker_B.getOrigin().y() * unit, transform_map2ToTracker_B.getOrigin().z() * unit);
+            
             break;
         }
         }
-        vive_pose.pose.orientation.w = transform_map0ToTracker.getRotation().getW();
-        vive_pose.pose.orientation.x = transform_map0ToTracker.getRotation().getX();
-        vive_pose.pose.orientation.y = transform_map0ToTracker.getRotation().getY();
-        vive_pose.pose.orientation.z = transform_map0ToTracker.getRotation().getZ();
-        vive_pose.pose.position.x = transform_map0ToTracker.getOrigin().getX();
-        vive_pose.pose.position.y = transform_map0ToTracker.getOrigin().getY();
-        vive_pose.pose.position.z = transform_map0ToTracker.getOrigin().getZ();
+        vive_pose.pose.orientation.w = transform_map0ToTracker_A.getRotation().getW();
+        vive_pose.pose.orientation.x = transform_map0ToTracker_A.getRotation().getX();
+        vive_pose.pose.orientation.y = transform_map0ToTracker_A.getRotation().getY();
+        vive_pose.pose.orientation.z = transform_map0ToTracker_A.getRotation().getZ();
+        vive_pose.pose.position.x = transform_map0ToTracker_A.getOrigin().getX();
+        vive_pose.pose.position.y = transform_map0ToTracker_A.getOrigin().getY();
+        vive_pose.pose.position.z = transform_map0ToTracker_A.getOrigin().getZ();
         vive_pose.header.stamp = ros::Time::now();
         vive_pose.header.frame_id = "map";
         // pose_pub.publish(vive_pose);
