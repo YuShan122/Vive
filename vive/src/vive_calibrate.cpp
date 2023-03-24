@@ -224,7 +224,7 @@ void reloadParam(ros::NodeHandle nh_)
     system(ss.c_str());
     ss = ss_prefix + "/LH2_Z " + std::to_string(transform_LH2ToMap.getRotation().getZ());
     system(ss.c_str());
-    auto path = "rosparam dump ~/Eurobot2023_ws/src/vive/param/vive_calibrate.yaml vive_calibrate";
+    auto path = "rosparam dump ~/eurobot_localization_ws/src/Eurobot-Localization/vive/param/vive_calibrate.yaml vive_calibrate";
     printf("dump param to vive_calibrate.yaml\n");
     system(path);
     deleteParam(nh_);
@@ -240,7 +240,7 @@ void deleteParam(ros::NodeHandle nh_)
     nh_.deleteParam(node_name + "/tracker_abs_X");
     nh_.deleteParam(node_name + "/tracker_abs_Y");
     nh_.deleteParam(node_name + "/tracker_abs_Z");
-    auto path = "rosparam dump ~/Eurobot2023_ws/src/vive/param/vive_localization.yaml vive_calibrate";
+    auto path = "rosparam dump ~/eurobot_localization_ws/src/Eurobot-Localization/vive/param/vive_localization.yaml vive_calibrate";
     printf("load param to vive_localization.yaml\n");
     system(path);
 
