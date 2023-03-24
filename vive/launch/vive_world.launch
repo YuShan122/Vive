@@ -1,0 +1,7 @@
+<launch>
+    
+    <node name="vive_world" pkg="vive" type="vive_world" output="screen">
+        <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
+    </node>
+
+</launch>

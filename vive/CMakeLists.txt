@@ -219,6 +219,12 @@ target_link_libraries(vive_localization ${LIBS}  ${catkin_LIBRARIES} )
 add_executable(vive_localization_multi src/vive_localization_multi.cpp)
 target_link_libraries(vive_localization_multi ${LIBS}  ${catkin_LIBRARIES} )
 
+add_executable(vive_world src/vive_world.cpp)
+target_link_libraries(vive_world ${LIBS}  ${catkin_LIBRARIES} )
+
+add_executable(vive_trackerpose src/vive_trackerpose.cpp)
+target_link_libraries(vive_trackerpose ${LIBS}  ${catkin_LIBRARIES} )
+
 add_executable(vive_localization_plus src/vive_localization_plus.cpp)
 add_dependencies(vive_localization_plus ${catkin_EXPORTED_TARGETS})
 target_link_libraries(vive_localization_plus ${LIBS}  ${catkin_LIBRARIES} )
