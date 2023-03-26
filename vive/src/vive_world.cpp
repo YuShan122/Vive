@@ -44,9 +44,6 @@ public:
     std::string frame;
     char letter;
     tf::StampedTransform transform_from_map;
-    // tf::StampedTransform transform_from_map0;
-    // tf::StampedTransform transform_from_map1;
-    // tf::StampedTransform transform_from_map2;
     tf::StampedTransform transform_from_world;
     void set_and_send_transform_from_world(tf::TransformBroadcaster br_, SurvivePose pose_) {
         transform_from_world.setOrigin(tf::Vector3(pose_.Pos[0], pose_.Pos[1], pose_.Pos[2]));
@@ -160,19 +157,6 @@ void initialize(ros::NodeHandle nh_) {
     lh0.set_transform_to_map();
     lh1.set_transform_to_map();
     lh2.set_transform_to_map();
-
-    // lh0.transform_to_map.setOrigin(tf::Vector3(
-    //     lh0.p_to_map.x, lh0.p_to_map.y, lh0.p_to_map.z));
-    // lh0.transform_to_map.setRotation(tf::Quaternion(
-    //     lh0.p_to_map.X, lh0.p_to_map.Y, lh0.p_to_map.Z, lh0.p_to_map.W));
-    // lh1.transform_to_map.setOrigin(tf::Vector3(
-    //     lh1.p_to_map.x, lh1.p_to_map.y, lh1.p_to_map.z));
-    // lh1.transform_to_map.setRotation(tf::Quaternion(
-    //     lh1.p_to_map.X, lh1.p_to_map.Y, lh1.p_to_map.Z, lh1.p_to_map.W));
-    // lh2.transform_to_map.setOrigin(tf::Vector3(
-    //     lh2.p_to_map.x, lh2.p_to_map.y, lh2.p_to_map.z));
-    // lh2.transform_to_map.setRotation(tf::Quaternion(
-    //     lh2.p_to_map.X, lh2.p_to_map.Y, lh2.p_to_map.Z, lh2.p_to_map.W));
 }
 
 void deleteParam(ros::NodeHandle nh_)
@@ -184,7 +168,7 @@ void deleteParam(ros::NodeHandle nh_)
 
 }
 
-
+/*
 Map map_avg(Map map_0, Map map_1, Map map_2) {
     Map map_avg;
     VIVEPOSE pose_avg;
@@ -220,6 +204,7 @@ Map map_avg(Map map_0, Map map_1, Map map_2) {
         pose_avg.Y, pose_avg.Z);
     return map_avg;
 };
+*/
 
 int main(int argc, char** argv) {
 #ifdef __linux__
@@ -230,13 +215,11 @@ int main(int argc, char** argv) {
 
     ros::init(argc, argv, "vive_world");
     ros::NodeHandle nh;
-    // ros::Publisher pose_pub = nh.advertise<geometry_msgs::PoseStamped>("vive_pose", 10);
     tf::TransformBroadcaster br;
     tf::TransformListener listener;
 
     initialize(nh);
     ros::Rate rate(freq);
-    // geometry_msgs::PoseStamped vive_pose;
     SurviveSimpleContext* actx = survive_simple_init_with_logger(argc, argv, log_fn);
     if (actx == 0) // implies -help or similiar
         return 0;
@@ -304,69 +287,20 @@ int main(int argc, char** argv) {
                 }
             }
         }
-        // br.sendTransform(tf::StampedTransform(lh0.transform_from_world, ros::Time::now(), "survive_world", "LH0"));
-        // br.sendTransform(tf::StampedTransform(lh1.transform_from_world, ros::Time::now(), "survive_world", "LH1"));
-        // br.sendTransform(tf::StampedTransform(lh2.transform_from_world, ros::Time::now(), "survive_world", "LH2"));
-        // br.sendTransform(tf::StampedTransform(lh0.transform_to_map, ros::Time::now(), "LH0", "map0"));
-        // br.sendTransform(tf::StampedTransform(lh1.transform_to_map, ros::Time::now(), "LH1", "map1"));
-        // br.sendTransform(tf::StampedTransform(lh2.transform_to_map, ros::Time::now(), "LH2", "map2"));
-        try {
-            listener.lookupTransform("survive_world", map0.frame, ros::Time(0), map0.transform_from_world);
-            listener.lookupTransform("survive_world", map1.frame, ros::Time(0), map1.transform_from_world);
-            listener.lookupTransform("survive_world", map2.frame, ros::Time(0), map2.transform_from_world);
-        }
-        catch (tf::TransformException& ex) {
-            ROS_ERROR("%s", ex.what());
-        }
-
-        map = map_avg(map0, map1, map2);
-        br.sendTransform(tf::StampedTransform(map.transform_from_world, ros::Time::now(), "survive_world", "map"));
-
         // try {
-        //     listener.lookupTransform("map", "trackerA", ros::Time(0), trackerA.transform_from_map);
-        //     listener.lookupTransform("map0", "trackerA", ros::Time(0), trackerA.transform_from_map0);
-        //     listener.lookupTransform("map1", "trackerA", ros::Time(0), trackerA.transform_from_map1);
-        //     listener.lookupTransform("map2", "trackerA", ros::Time(0), trackerA.transform_from_map2);
-        //     listener.lookupTransform("map", "trackerB", ros::Time(0), trackerB.transform_from_map);
-        //     listener.lookupTransform("map0", "trackerB", ros::Time(0), trackerB.transform_from_map0);
-        //     listener.lookupTransform("map1", "trackerB", ros::Time(0), trackerB.transform_from_map1);
-        //     listener.lookupTransform("map2", "trackerB", ros::Time(0), trackerB.transform_from_map2);
+        //     listener.lookupTransform("survive_world", map0.frame, ros::Time(0), map0.transform_from_world);
+        //     listener.lookupTransform("survive_world", map1.frame, ros::Time(0), map1.transform_from_world);
+        //     listener.lookupTransform("survive_world", map2.frame, ros::Time(0), map2.transform_from_world);
         // }
         // catch (tf::TransformException& ex) {
         //     ROS_ERROR("%s", ex.what());
         // }
-        // printf("transform: map0 to tracker_A\n");
-        // printf("%f, %f, %f\n", trackerA.transform_from_map0.getOrigin().x() * unit,
-        //     trackerA.transform_from_map0.getOrigin().y() * unit, trackerA.transform_from_map0.getOrigin().z() * unit);
-        // printf("transform: map1 to tracker_A\n");
-        // printf("%f, %f, %f\n", trackerA.transform_from_map1.getOrigin().x() * unit,
-        //     trackerA.transform_from_map1.getOrigin().y() * unit, trackerA.transform_from_map1.getOrigin().z() * unit);
-        // printf("transform: map2 to tracker_A\n");
-        // printf("%f, %f, %f\n", trackerA.transform_from_map2.getOrigin().x() * unit,
-        //     trackerA.transform_from_map2.getOrigin().y() * unit, trackerA.transform_from_map2.getOrigin().z() * unit);
 
-        // printf("transform: map0 to trackerB\n");
-        // printf("%f, %f, %f\n", trackerB.transform_from_map0.getOrigin().x() * unit,
-        //     trackerB.transform_from_map0.getOrigin().y() * unit, trackerB.transform_from_map0.getOrigin().z() * unit);
-        // printf("transform: map1 to trackerB\n");
-        // printf("%f, %f, %f\n", trackerB.transform_from_map1.getOrigin().x() * unit,
-        //     trackerB.transform_from_map1.getOrigin().y() * unit, trackerB.transform_from_map1.getOrigin().z() * unit);
-        // printf("transform: map2 to trackerB\n");
-        // printf("%f, %f, %f\n", trackerB.transform_from_map2.getOrigin().x() * unit,
-        //     trackerB.transform_from_map2.getOrigin().y() * unit, trackerB.transform_from_map2.getOrigin().z() * unit);
+        // map = map_avg(map0, map1, map2);
+        // br.sendTransform(tf::StampedTransform(map.transform_from_world, ros::Time::now(), "survive_world", "map"));
+
 
     }
-    // vive_pose.pose.orientation.w = trackerA.transform_from_map0.getRotation().getW();
-    // vive_pose.pose.orientation.x = trackerA.transform_from_map0.getRotation().getX();
-    // vive_pose.pose.orientation.y = trackerA.transform_from_map0.getRotation().getY();
-    // vive_pose.pose.orientation.z = trackerA.transform_from_map0.getRotation().getZ();
-    // vive_pose.pose.position.x = trackerA.transform_from_map0.getOrigin().getX();
-    // vive_pose.pose.position.y = trackerA.transform_from_map0.getOrigin().getY();
-    // vive_pose.pose.position.z = trackerA.transform_from_map0.getOrigin().getZ();
-    // vive_pose.header.stamp = ros::Time::now();
-    // vive_pose.header.frame_id = "map";
-    // pose_pub.publish(vive_pose);
-    // pose_pub.publish(avg_pose(br));
     rate.sleep();
 
     deleteParam(nh);

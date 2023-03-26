@@ -1,0 +1,8 @@
+<launch>
+    
+    <node name="vive_trackerpose" pkg="vive" type="vive_trackerpose" output="screen">
+        <param name ="freq" type="int" value="21"/>
+        <param name ="unit" type="int" value="1"/>
+    </node>
+
+</launch>
