@@ -1,0 +1,10 @@
+tracker_num: 2
+robot_1:
+  name: "robot_1"
+  tracker: 'A'
+robot_2:
+  name: "robot_2"
+  tracker: 'B'
+
+freq: 21
+unit: 1
