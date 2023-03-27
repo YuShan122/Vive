@@ -148,14 +148,14 @@ nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_) {
         vive_pose.pose.pose.orientation.y, vive_pose.pose.pose.orientation.z);
     
     // differential
-    dt = (ros::Time::now() - last_time).toSec();
-    tracker_vel.x = (vive_pose.pose.pose.position.x - tracker_last_pose.x)/ dt;
-    tracker_vel.y = (vive_pose.pose.pose.position.y - tracker_last_pose.y)/ dt;
-    tracker_vel.z = (vive_pose.pose.pose.position.z - tracker_last_pose.z)/ dt;
-    tracker_last_pose.x = vive_pose.pose.pose.position.x;
-    tracker_last_pose.y = vive_pose.pose.pose.position.y;
-    tracker_last_pose.z = vive_pose.pose.pose.position.z;
-    last_time = ros::Time::now();
+    // dt = (ros::Time::now() - last_time).toSec();
+    // tracker_vel.x = (vive_pose.pose.pose.position.x - tracker_last_pose.x)/ dt;
+    // tracker_vel.y = (vive_pose.pose.pose.position.y - tracker_last_pose.y)/ dt;
+    // tracker_vel.z = (vive_pose.pose.pose.position.z - tracker_last_pose.z)/ dt;
+    // tracker_last_pose.x = vive_pose.pose.pose.position.x;
+    // tracker_last_pose.y = vive_pose.pose.pose.position.y;
+    // tracker_last_pose.z = vive_pose.pose.pose.position.z;
+    // last_time = ros::Time::now();
     
     return vive_pose;
 }
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
                 survive_simple_object_get_latest_pose(it, &pose);
                 if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT) {
                     survive_simple_object_get_latest_velocity(it, &velocity);
-                    // printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it), velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
+                    printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it), velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
                     transform_surviveWorldToTracker.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
                     transform_surviveWorldToTracker.setRotation(tf::Quaternion(pose.Rot[1], pose.Rot[2], pose.Rot[3], pose.Rot[0]));
 
@@ -266,25 +266,25 @@ int main(int argc, char** argv) {
         pose_ = avg_pose(br);
         
         try{
-            listener.lookupTransform("survive_world","map0", ros::Time(0), transform_SurviveWorldTomap);
+            listener.lookupTransform("map0","survive_world", ros::Time(0), transform_SurviveWorldTomap);
         }
         catch(tf::TransformException& ex){ ROS_ERROR("%s", ex.what()); }
-        double tole = 0.0005;
+        double tole = 0.00001;
         tf::Matrix3x3 R(transform_SurviveWorldTomap.getRotation());
 
         printf("trans matrix\n%8.4f, %8.4f, %8.4f\n%8.4f, %8.4f, %8.4f\n%8.4f, %8.4f, %8.4f\n",R[0][0],R[0][1],R[0][2],R[1][0],R[1][1],R[1][2],R[2][0],R[2][1],R[2][2]);
         // survive_world frame trans to map to get the tracker velocity
-        // tf::Vector3 vel_(vel.x, vel.y, vel.z);
-        // tf::Vector3 vector_vel = R * vel_;
-        // pose_.twist.twist.linear.x = vector_vel[0] > tole ? vector_vel[0] : 0.0;
-        // pose_.twist.twist.linear.y = vector_vel[1] > tole ? vector_vel[0] : 0.0;
-        // pose_.twist.twist.linear.z = vector_vel[2] > tole ? vector_vel[0] : 0.0;
+        tf::Vector3 vel_(vel.x, vel.y, vel.z);
+        tf::Vector3 vector_vel = R * vel_;
+        pose_.twist.twist.linear.x = vector_vel[0] > tole ? vector_vel[0] : 0.0;
+        pose_.twist.twist.linear.y = vector_vel[1] > tole ? vector_vel[0] : 0.0;
+        pose_.twist.twist.linear.z = vector_vel[2] > tole ? vector_vel[0] : 0.0;
         
         // differential the pose to get the velocity 
-        int resolution = 50;
-        pose_.twist.twist.linear.x = abs(tracker_vel.x) > tole ? int(tracker_vel.x/resolution)*resolution : 0.0;
-        pose_.twist.twist.linear.y = abs(tracker_vel.y) > tole ? int(tracker_vel.y/resolution)*resolution : 0.0;
-        pose_.twist.twist.linear.z = abs(tracker_vel.z) > tole ? int(tracker_vel.z/resolution)*resolution : 0.0;
+        // int resolution = 50;
+        // pose_.twist.twist.linear.x = abs(tracker_vel.x) > tole ? int(tracker_vel.x/resolution)*resolution : 0.0;
+        // pose_.twist.twist.linear.y = abs(tracker_vel.y) > tole ? int(tracker_vel.y/resolution)*resolution : 0.0;
+        // pose_.twist.twist.linear.z = abs(tracker_vel.z) > tole ? int(tracker_vel.z/resolution)*resolution : 0.0;
         
         // survive_world frame vel
         // pose_.twist.twist.linear.x = vel.x;
