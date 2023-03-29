@@ -1,7 +1,8 @@
 <launch>
     
-    <node name="vive_world" pkg="vive" type="vive_world" output="screen">
+    <node name="vive_world_2" pkg="vive" type="vive_world" output="screen">
         <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
+        <param name ="world_num" type="int" value="2"/>
     </node>
     <!-- <node name="vive_trackerpose" pkg="vive" type="vive_trackerpose" output="screen">
         <param name ="freq" type="int" value="21"/>

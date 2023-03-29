@@ -6,7 +6,6 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
-#include <geometry_msgs/PoseStamped.h>
 
 static volatile int keepRunning = 1;
 
@@ -40,8 +39,12 @@ public:
         frame = "tracker";
         frame.push_back(letter);
     }
+    void set_world_frame(std::string wf) {
+        world_frame = wf;
+    }
     std::string serial_num;
     std::string frame;
+    std::string world_frame;
     char letter;
     tf::StampedTransform transform_from_map;
     tf::StampedTransform transform_from_world;
@@ -49,7 +52,7 @@ public:
         transform_from_world.setOrigin(tf::Vector3(pose_.Pos[0], pose_.Pos[1], pose_.Pos[2]));
         transform_from_world.setRotation(tf::Quaternion(pose_.Rot[1], pose_.Rot[2], pose_.Rot[3], pose_.Rot[0]));
         br_.sendTransform(tf::StampedTransform(
-            transform_from_world, ros::Time::now(), "survive_world", frame));
+            transform_from_world, ros::Time::now(), world_frame, frame));
     }
 private:
 };
@@ -62,8 +65,12 @@ public:
         serial_num = sn;
         frame = "LH" + std::to_string(order);
     }
+    void set_world_frame(std::string wf) {
+        world_frame = wf;
+    }
     std::string serial_num;
     std::string frame;
+    std::string world_frame;
     int order;
     VIVEPOSE p_to_map;
     tf::StampedTransform transform_to_map;
@@ -80,7 +87,7 @@ public:
     }
     void send_transform_from_world(tf::TransformBroadcaster br_) {
         br_.sendTransform(tf::StampedTransform(transform_from_world,
-            ros::Time::now(), "survive_world", frame));
+            ros::Time::now(), world_frame, frame));
     }
     void send_transform_to_map(tf::TransformBroadcaster br_) {
         br_.sendTransform(tf::StampedTransform(transform_to_map,
@@ -104,7 +111,6 @@ public:
 private:
 };
 
-// VIVEPOSE LH0, LH1, LH2;
 Tracker trackerA('A', "LHR-94135635");
 Tracker trackerB('B', "LHR-15565625");
 Tracker trackerC('C', "LHR-662B1E75");
@@ -117,8 +123,11 @@ Map map;
 Map map0(0);
 Map map1(1);
 Map map2(2);
+
 int freq = 21;
 int unit = 1;
+int world_num = 1;
+std::string world_frame = "survive_world_";
 
 static void log_fn(SurviveSimpleContext* actx, SurviveLogLevel logLevel, const char* msg) {
     fprintf(stderr, "(%7.3f) SimpleApi: %s\n", survive_simple_run_time(actx), msg);
@@ -151,12 +160,23 @@ void initialize(ros::NodeHandle nh_) {
     nh_.getParam(node_name + "/LH2_Y", lh2.p_to_map.Y);
     nh_.getParam(node_name + "/LH2_Z", lh2.p_to_map.Z);
 
-    nh_.getParam(node_name + "/freq", freq);
-    nh_.getParam(node_name + "/unit", unit);
-
     lh0.set_transform_to_map();
     lh1.set_transform_to_map();
     lh2.set_transform_to_map();
+
+    nh_.getParam(node_name + "/freq", freq);
+    nh_.getParam(node_name + "/unit", unit);
+    nh_.getParam(node_name + "/world_num", world_num);
+    world_frame = "survive_world_" + std::to_string(world_num);
+
+    trackerA.set_world_frame(world_frame);
+    trackerB.set_world_frame(world_frame);
+    trackerC.set_world_frame(world_frame);
+    trackerD.set_world_frame(world_frame);
+    trackerE.set_world_frame(world_frame);
+    lh0.set_world_frame(world_frame);
+    lh1.set_world_frame(world_frame);
+    lh2.set_world_frame(world_frame);
 }
 
 void deleteParam(ros::NodeHandle nh_)
@@ -168,7 +188,7 @@ void deleteParam(ros::NodeHandle nh_)
 
 }
 
-/*
+
 Map map_avg(Map map_0, Map map_1, Map map_2) {
     Map map_avg;
     VIVEPOSE pose_avg;
@@ -204,7 +224,7 @@ Map map_avg(Map map_0, Map map_1, Map map_2) {
         pose_avg.Y, pose_avg.Z);
     return map_avg;
 };
-*/
+
 
 int main(int argc, char** argv) {
 #ifdef __linux__
@@ -220,6 +240,7 @@ int main(int argc, char** argv) {
 
     initialize(nh);
     ros::Rate rate(freq);
+
     SurviveSimpleContext* actx = survive_simple_init_with_logger(argc, argv, log_fn);
     if (actx == 0) // implies -help or similiar
         return 0;
@@ -287,19 +308,16 @@ int main(int argc, char** argv) {
                 }
             }
         }
-        // try {
-        //     listener.lookupTransform("survive_world", map0.frame, ros::Time(0), map0.transform_from_world);
-        //     listener.lookupTransform("survive_world", map1.frame, ros::Time(0), map1.transform_from_world);
-        //     listener.lookupTransform("survive_world", map2.frame, ros::Time(0), map2.transform_from_world);
-        // }
-        // catch (tf::TransformException& ex) {
-        //     ROS_ERROR("%s", ex.what());
-        // }
-
-        // map = map_avg(map0, map1, map2);
-        // br.sendTransform(tf::StampedTransform(map.transform_from_world, ros::Time::now(), "survive_world", "map"));
-
-
+        try {
+            listener.lookupTransform(map0.frame, world_frame, ros::Time(0), map0.transform_from_world);
+            listener.lookupTransform(map1.frame, world_frame, ros::Time(0), map1.transform_from_world);
+            listener.lookupTransform(map2.frame, world_frame, ros::Time(0), map2.transform_from_world);
+        }
+        catch (tf::TransformException& ex) {
+            ROS_ERROR("%s", ex.what());
+        }
+        map = map_avg(map0, map1, map2);
+        br.sendTransform(tf::StampedTransform(map.transform_from_world, ros::Time::now(), "map", world_frame));
     }
     rate.sleep();
 
