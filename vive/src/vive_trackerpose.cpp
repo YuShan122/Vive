@@ -28,7 +28,10 @@ private:
     geometry_msgs::PoseWithCovarianceStamped pose;
     tf::TransformListener listener;
     tf::StampedTransform transform_from_map;
+    std::string node_name_;
+    std::string robot_name;
     std::string tracker_frame;
+    std::string map_frame;
     bool active;
     double covariance[36];
     VIVEPOSE poseV;
@@ -36,28 +39,39 @@ private:
 Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     nh = nh_g;
     nh_ = nh_l;
-    // std::string node_name = ros::this_node::getName();
-    pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("lidar_bonbonbon", 10);
-    nh_.getParam("tracker", tracker_frame);
-    nh_.getParam("covariance0", covariance[0]);
-    nh_.getParam("covariance7", covariance[7]);
-    nh_.getParam("covariance14", covariance[14]);
-    nh_.getParam("covariance21", covariance[21]);
-    nh_.getParam("covariance28", covariance[28]);
-    nh_.getParam("covariance35", covariance[35]);
-    // ROS_INFO("test local nh: %s", tracker_frame);
+    pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("lidar_bonbonbon", 10);   //topic name: [ns of <group>]/lidar_bonbonbon
+    node_name_ = ros::this_node::getName();
+    bool ok = true;
+    ok &= nh_.getParam("tracker", tracker_frame);       //path: under this node
+    ok &= nh_.getParam("map", map_frame);
+    ok &= nh_.getParam("robot_name", robot_name);
+    ok &= nh_.getParam("covariance0", covariance[0]);
+    ok &= nh_.getParam("covariance7", covariance[7]);
+    ok &= nh_.getParam("covariance14", covariance[14]);
+    ok &= nh_.getParam("covariance21", covariance[21]);
+    ok &= nh_.getParam("covariance28", covariance[28]);
+    ok &= nh_.getParam("covariance35", covariance[35]);
+
+    std::cout << "node: " << node_name_ << " getting parameters of the robot..." << std::endl;
+    std::cout << "robot name: " << robot_name << std::endl;
+    std::cout << "map frame: " << map_frame << std::endl;
     std::cout << "tracker: " << tracker_frame << std::endl;
 
+    if (ok) {
+        std::cout << "node: " << node_name_ << " get parameters of the robot sucessed." << std::endl;
+    }
+    else {
+        std::cout << "node: " << node_name_ << " get parameters of robot failed." << std::endl;
+    }
 }
 void Robot::lookup_transform_from_map() {
-    // std::string node_name = ros::this_node::getName();
     // if (listener.canTransform("map", tracker_frame, ros::Time::now())) {
     try {
-        listener.lookupTransform("map", tracker_frame, ros::Time(0), transform_from_map);
+        listener.lookupTransform(map_frame, tracker_frame, ros::Time(0), transform_from_map);
     }
     catch (tf::TransformException& ex) {
         printf("%s", ex.what());
-        std::cout << tracker_frame << " connot transform" << std::endl;
+        std::cout << "connot transform from " << map_frame << " to " << tracker_frame << std::endl;
     }
     // }
     // else {
@@ -83,70 +97,66 @@ void Robot::publish_vive_pose() {
     pose_pub.publish(pose);
 }
 void Robot::print_pose() {
-    // std::string node_name = ros::this_node::getName();
+    poseV.x = transform_from_map.getOrigin().getX();
+    poseV.y = transform_from_map.getOrigin().getY();
+    poseV.z = transform_from_map.getOrigin().getZ();
     poseV.W = transform_from_map.getRotation().getW();
     poseV.X = transform_from_map.getRotation().getX();
     poseV.Y = transform_from_map.getRotation().getY();
     poseV.Z = transform_from_map.getRotation().getZ();
-    poseV.x = transform_from_map.getOrigin().getX();
-    poseV.y = transform_from_map.getOrigin().getY();
-    poseV.z = transform_from_map.getOrigin().getZ();
-    printf("(x y z W X Y Z)\n");
-    printf("%f, %f, %f, %f, %f, %f, %f\n",
-        poseV.x, poseV.y, poseV.z, poseV.W, poseV.X, poseV.Y, poseV.Z);
+    std::cout << "trackerpose: " << robot_name << "/" << map_frame << "->" << tracker_frame << " (x y z W X Y Z)" << std::endl;
+    std::cout << poseV.x << poseV.y << poseV.z << poseV.W << poseV.X << poseV.Y << poseV.Z << std::endl;
 }
 
 int freq = 21;
 int unit;
-int tracker_num;
-// std::string name_space;
-// std::string node_name;
+std::string name_space;
+std::string node_name;
 
-void initialize(ros::NodeHandle nh_) {
-    // std::string node_name = ros::this_node::getName();
-    nh_.getParam("freq", freq);
-    nh_.getParam("unit", unit);
-    printf("test local nh: %d, %d\n", freq, unit);
+bool initialize(ros::NodeHandle nh_) {
+    bool ok = true;
+    node_name = ros::this_node::getName();
+    name_space = ros::this_node::getNamespace();
+    ok &= nh_.getParam("freq", freq);
+    ok &= nh_.getParam("unit", unit);
+    std::cout << "param: freq= " << freq << std::endl;
+    std::cout << "param: unit= " << unit << std::endl;
+    if (ok) {
+        std::cout << "node: " << node_name << " get parameters of node sucessed." << std::endl;
+    }
+    else {
+        std::cout << "node: " << node_name << " get parameters of node failed." << std::endl;
+        return false;
+    }
+    std::cout << "node: " << node_name << " initialized." << "(in namespace: " << name_space << ")" << std::endl;
+    return true;
 }
 void deleteParam() {
-    std::string node_name = ros::this_node::getName();
     std::string deleteparam = "rosparam delete " + node_name;
     system(deleteparam.c_str());
-    std::cout << node_name << std::endl;
+    std::cout << "node: " << node_name << " parameters deleted" << std::endl;
 }
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "vive_trackerpose");
-    ros::NodeHandle nh;
-    ros::NodeHandle nh_("~");
-    // ros::Publisher pose_pub_1;
-    // ros::Publisher pose_pub_2;
-    // ros::Publisher pose_pub_2 = nh.advertise<geometry_msgs::PoseStamped>("vive_pose_2", 10);
-    // geometry_msgs::PoseStamped vive_pose;
-    // tf::TransformBroadcaster br;
-    // tf::TransformListener listener;
+    ros::NodeHandle nh; //path: the ns of <group> of the launch file
+    ros::NodeHandle nh_("~");   //path: this node
     initialize(nh_);
     ros::Rate rate(freq);
 
     Robot robot(nh, nh_);
-    // std::string node_name;
-    // std::string name_space;
-    // node_name = ros::this_node::getName();
-    // name_space = ros::this_node::getNamespace();
 
     while (ros::ok()) {
 
         robot.lookup_transform_from_map();
         robot.publish_vive_pose();
         robot.print_pose();
-        // printf("%s\n", node_name);
-        // printf("%s\n", name_space);
 
         rate.sleep();
     }
 
     deleteParam();
-    printf("closed\n");
+    std::cout << "node: " << node_name << " closed." << std::endl;
 
     return(0);
 }

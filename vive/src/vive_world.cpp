@@ -39,8 +39,8 @@ public:
         frame = "tracker";
         frame.push_back(letter);
     }
-    void set_world_frame(std::string wf) {
-        world_frame = wf;
+    void set_prefix(std::string pf_) {
+        world_frame = pf_ + "world";
     }
     std::string serial_num;
     std::string frame;
@@ -65,8 +65,9 @@ public:
         serial_num = sn;
         frame = "LH" + std::to_string(order);
     }
-    void set_world_frame(std::string wf) {
-        world_frame = wf;
+    void set_prefix(std::string pf_) {
+        world_frame = pf_ + "world";
+        frame = pf_ + frame;
     }
     std::string serial_num;
     std::string frame;
@@ -105,6 +106,9 @@ public:
         order = od;
         frame = "map" + std::to_string(order);
     }
+    void set_prefix(std::string pf_) {
+        frame = pf_ + frame;
+    }
     int order;
     std::string frame;
     tf::StampedTransform transform_from_world;
@@ -127,7 +131,8 @@ Map map2(2);
 int freq = 21;
 int unit = 1;
 int world_num = 1;
-std::string world_frame = "survive_world_";
+std::string world_frame = "survive_world";
+std::string survive_prefix = "survive_";
 
 static void log_fn(SurviveSimpleContext* actx, SurviveLogLevel logLevel, const char* msg) {
     fprintf(stderr, "(%7.3f) SimpleApi: %s\n", survive_simple_run_time(actx), msg);
@@ -166,17 +171,21 @@ void initialize(ros::NodeHandle nh_) {
 
     nh_.getParam(node_name + "/freq", freq);
     nh_.getParam(node_name + "/unit", unit);
-    nh_.getParam(node_name + "/world_num", world_num);
-    world_frame = "survive_world_" + std::to_string(world_num);
+    nh_.getParam(node_name + "/survive_prefix", survive_prefix);
 
-    trackerA.set_world_frame(world_frame);
-    trackerB.set_world_frame(world_frame);
-    trackerC.set_world_frame(world_frame);
-    trackerD.set_world_frame(world_frame);
-    trackerE.set_world_frame(world_frame);
-    lh0.set_world_frame(world_frame);
-    lh1.set_world_frame(world_frame);
-    lh2.set_world_frame(world_frame);
+    trackerA.set_prefix(survive_prefix);
+    trackerB.set_prefix(survive_prefix);
+    trackerC.set_prefix(survive_prefix);
+    trackerD.set_prefix(survive_prefix);
+    trackerE.set_prefix(survive_prefix);
+    lh0.set_prefix(survive_prefix);
+    lh1.set_prefix(survive_prefix);
+    lh2.set_prefix(survive_prefix);
+    map.set_prefix(survive_prefix);
+    map0.set_prefix(survive_prefix);
+    map1.set_prefix(survive_prefix);
+    map2.set_prefix(survive_prefix);
+    world_frame = survive_prefix + "world";
 }
 
 void deleteParam(ros::NodeHandle nh_)
@@ -317,7 +326,7 @@ int main(int argc, char** argv) {
             ROS_ERROR("%s", ex.what());
         }
         map = map_avg(map0, map1, map2);
-        br.sendTransform(tf::StampedTransform(map.transform_from_world, ros::Time::now(), "map", world_frame));
+        br.sendTransform(tf::StampedTransform(map.transform_from_world, ros::Time::now(), survive_prefix + "map", world_frame));
     }
     rate.sleep();
 

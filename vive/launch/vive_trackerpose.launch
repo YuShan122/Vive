@@ -1,29 +1,33 @@
 <launch>
-    <arg name="robot1_active" default="true"/>
-    <arg name="robot2_active" default="true"/>
+    <arg name="robot1_active" default="true"/>  <!-- need to check -->
+    <arg name="robot2_active" default="true"/>  <!-- need to check -->
     
     <group ns="robot1" if="$(arg robot1_active)">
         <node name="vive_trackerpose" pkg="vive" type="vive_trackerpose" output="screen">
             <rosparam file="$(find vive)/param/vive_trackerpose.yaml" command="load" />
-            <param name="tracker" type="string" value="trackerA"/>
-            <param name="covariance0" type="double" value="1.0"/>
+            <param name="robot_name" type="string" value="robot1"/> <!-- need to check -->
+            <param name="map" type="string" value="survive1_map"/>  <!-- need to check -->
+            <param name="tracker" type="string" value="trackerA"/>  <!-- need to check -->
+            <!-- <param name="covariance0" type="double" value="1.0"/>
             <param name="covariance7" type="double" value="1.0"/>
             <param name="covariance14" type="double" value="1.0"/>
             <param name="covariance21" type="double" value="1.0"/>
             <param name="covariance28" type="double" value="1.0"/>
-            <param name="covariance35" type="double" value="1.0"/>
+            <param name="covariance35" type="double" value="1.0"/> -->
         </node>
     </group>
     <group ns="robot2" if="$(arg robot2_active)">
         <node name="vive_trackerpose" pkg="vive" type="vive_trackerpose" output="screen">
             <rosparam file="$(find vive)/param/vive_trackerpose.yaml" command="load" />
-            <param name="tracker" type="string" value="trackerB"/>
-            <param name="covariance0" type="double" value="1.0"/>
+            <param name="robot_name" type="string" value="robot2"/> <!-- need to check -->
+            <param name="map" type="string" value="survive1_map"/>  <!-- need to check -->
+            <param name="tracker" type="string" value="trackerB"/>  <!-- need to check -->
+            <!-- <param name="covariance0" type="double" value="1.0"/>
             <param name="covariance7" type="double" value="1.0"/>
             <param name="covariance14" type="double" value="1.0"/>
             <param name="covariance21" type="double" value="1.0"/>
             <param name="covariance28" type="double" value="1.0"/>
-            <param name="covariance35" type="double" value="1.0"/>
+            <param name="covariance35" type="double" value="1.0"/> -->
         </node>
     </group>
 

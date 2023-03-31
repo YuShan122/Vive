@@ -1,9 +1,12 @@
 <launch>
-    
-    <node name="vive_world_2" pkg="vive" type="vive_world" output="screen">
-        <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
-        <param name ="world_num" type="int" value="2"/>
-    </node>
+    <group ns="survive1">
+        <node name="vive_world" pkg="vive" type="vive_world" output="screen">
+            <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
+            <param name ="survive_prefix" type="string" value="survive1_"/>
+            <param name ="tracker_num" type="int" value="2"/>
+        </node>
+    </group>
+
     <!-- <node name="vive_trackerpose" pkg="vive" type="vive_trackerpose" output="screen">
         <param name ="freq" type="int" value="21"/>
         <param name ="unit" type="int" value="1"/>
