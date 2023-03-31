@@ -1,0 +1,5 @@
+# low passed filter
+alpha: 0.1
+# stationary state tole vel
+tole: 0.1
+debug: False

@@ -1,0 +1,6 @@
+<launch>
+    <node name="vive_localization_rival" pkg="vive" type="vive_localization_rival" output="screen">
+        <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
+        <rosparam file="$(find vive)/param/vive_localization_rival.yaml" command="load" />
+    </node>
+</launch>

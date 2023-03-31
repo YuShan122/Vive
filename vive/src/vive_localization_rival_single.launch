@@ -1,0 +1,9 @@
+<launch>
+    
+    <node name="vive_localization_rival_single" pkg="vive" type="vive_localization_rival_single" output="screen">
+        <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
+    </node>
+    <node type="vive_NavToGeo" name="vive_NavToGeo" pkg="vive" args="Lidar_bonbonbon" />
+
+
+</launch>

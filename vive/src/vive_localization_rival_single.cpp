@@ -28,13 +28,13 @@ std::string tracker_SN_C = "LHR-662B1E75";
 std::string tracker_SN_D = "LHR-38203A4C";
 std::string tracker_SN_E = "LHR-E833C29B";
 std::string tracker_serial_name = tracker_SN_A;
+std::string tracker_name = "tracker_A";
 
 void intHandler(int dummy) {
     if (keepRunning == 0)
         exit(-1);
     keepRunning = 0;
 }
-
 #endif
 
 typedef struct vivePose {
@@ -42,7 +42,6 @@ typedef struct vivePose {
     double W, X, Y, Z;
     double yaw, roll, pitch;
 }VIVEPOSE;
-
 VIVEPOSE LH0, LH1, LH2, tracker_vel, tracker_last_pose;
 
 tf::StampedTransform transform_LH0ToMap0;
@@ -58,7 +57,6 @@ tf::StampedTransform transform_map2ToTracker;
 tf::StampedTransform transform_map0ToSurviveWorld;
 tf::StampedTransform transform_SurviveWorldTomap;
 tf::StampedTransform transform_mapToTracker;
-
 
 static void log_fn(SurviveSimpleContext* actx, SurviveLogLevel logLevel, const char* msg) {
     fprintf(stderr, "(%7.3f) SimpleApi: %s\n", survive_simple_run_time(actx), msg);
@@ -166,12 +164,16 @@ nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_) {
 }
 
 tf::Vector3 last_out_vel;
-float alpha = 0.1;
+float alpha = 0.0001;
+float del_vel = 0.1;
 tf::Vector3 lowpass_filter(tf::Vector3 in_vel)
 {
     tf::Vector3 out_vel;
     for(int i = 0; i<3; i++)
     {
+        if(abs(in_vel[i]-last_out_vel[i])>del_vel){
+            in_vel[i] = last_out_vel[i];
+        }
         out_vel[i] = (1-alpha)*last_out_vel[i] + alpha*in_vel[i];
         last_out_vel[i] = out_vel[i];
     }
@@ -185,7 +187,7 @@ int main(int argc, char** argv) {
     signal(SIGKILL, intHandler);
 #endif
 
-    ros::init(argc, argv, "vive_localization");
+    ros::init(argc, argv, "vive_localization_rival_single");
     ros::NodeHandle nh;
     ros::Publisher pose_pub = nh.advertise<nav_msgs::Odometry>("rival1/odom", 10);
     tf::TransformBroadcaster br;
@@ -211,7 +213,6 @@ int main(int argc, char** argv) {
     while (keepRunning && survive_simple_wait_for_event(actx, &event) != SurviveSimpleEventType_Shutdown && ros::ok()) {
         SurvivePose pose;
         SurviveVelocity velocity;
-        // VIVEPOSE vel, vel_, vel_minus;
         VIVEPOSE vel;
         switch (event.event_type) {
         case SurviveSimpleEventType_PoseUpdateEvent: {
@@ -249,7 +250,7 @@ int main(int argc, char** argv) {
                     }
                 }
             }
-            br.sendTransform(tf::StampedTransform(transform_surviveWorldToTracker, ros::Time::now(), "survive_world", "tracker"));
+            br.sendTransform(tf::StampedTransform(transform_surviveWorldToTracker, ros::Time::now(), "survive_world", tracker_name));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH0, ros::Time::now(), "survive_world", "LH0"));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH1, ros::Time::now(), "survive_world", "LH1"));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH2, ros::Time::now(), "survive_world", "LH2"));
@@ -257,9 +258,9 @@ int main(int argc, char** argv) {
             br.sendTransform(tf::StampedTransform(transform_LH1ToMap1, ros::Time::now(), "LH1", "map1"));
             br.sendTransform(tf::StampedTransform(transform_LH2ToMap2, ros::Time::now(), "LH2", "map2"));
             try {
-                listener.lookupTransform("map0", "tracker", ros::Time(0), transform_map0ToTracker);
-                listener.lookupTransform("map1", "tracker", ros::Time(0), transform_map1ToTracker);
-                listener.lookupTransform("map2", "tracker", ros::Time(0), transform_map2ToTracker);
+                listener.lookupTransform("map0", tracker_name, ros::Time(0), transform_map0ToTracker);
+                listener.lookupTransform("map1", tracker_name, ros::Time(0), transform_map1ToTracker);
+                listener.lookupTransform("map2", tracker_name, ros::Time(0), transform_map2ToTracker);
                 listener.lookupTransform("map0", "survive_world", ros::Time(0), transform_map0ToSurviveWorld);
             }
             catch (tf::TransformException& ex) {
@@ -292,13 +293,13 @@ int main(int argc, char** argv) {
         // tf::Vector3 out_vel = transform_SurviveWorldTomap.getBasis() * twist_vel + transform_SurviveWorldTomap.getOrigin().cross(out_rot);
         tf::Vector3 out_vel = transform_SurviveWorldTomap.getBasis() * twist_vel ;
 
-        out_vel = lowpass_filter(out_vel);
+        // out_vel = lowpass_filter(out_vel);
         pose_.twist.twist.linear.x = abs(out_vel[0]) > tole ? out_vel[0] : 0.0;
         pose_.twist.twist.linear.y = abs(out_vel[1]) > tole ? out_vel[1] : 0.0;
         pose_.twist.twist.linear.z = abs(out_vel[2]) > tole ? out_vel[2] : 0.0;
         pose_.twist.twist.angular.x = 0;
         pose_.twist.twist.angular.y = 0;
-        pose_.twist.twist.angular.z = out_rot[2];
+        pose_.twist.twist.angular.z = abs(out_rot[2]) > tole ? out_rot[2] : 0.0;
         
         // differential the pose to get the velocity 
         // int resolution = 1;
