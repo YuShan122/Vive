@@ -72,6 +72,7 @@ public:
     void lookup_tf_to_world(std::string wf_);
     VIVEPOSE get_p_to_world(bool ok);
     tf::Quaternion get_q_from_world_devide_by(int dvs, bool ok);
+    void set_tf_to_world(tf::StampedTransform tf_, VIVEPOSE p_);
 private:
     std::string frame;
     std::string lh_frame;
@@ -150,6 +151,11 @@ tf::Quaternion ViveMap::get_q_to_world_devide_by(int dvs, bool ok) {
     q = tf_to_world.getRotation().operator/(dvs);
     return q;
 }
+void ViveMap::set_tf_to_world(tf::StampedTransform tf_, VIVEPOSE p_){
+    tf_to_world = tf_;
+    p_to_world = p_;
+}
+
 
 double find_distance(ViveMap map1, ViveMap map2) {
     double distance;
@@ -161,7 +167,7 @@ double find_distance(ViveMap map1, ViveMap map2) {
     return distance;
 }
 ViveMap find_avg_map(ViveMap map0, ViveMap map1, ViveMap map2) {
-    ViveMap avg_map;
+    ViveMap avg_map(survive_prefix + "map");
     tf::Quaternion avg_q;
     tf::StampedTransform avg_tf;
     VIVEPOSE avg_p;
@@ -200,7 +206,15 @@ ViveMap find_avg_map(ViveMap map0, ViveMap map1, ViveMap map2) {
         map0.get_q_from_world_devide_by(divisor, ok0).operator+(
             map1.get_q_from_world_devide_by(divisor, ok1)).operator+(
                 map2.get_q_from_world_devide_by(divisor, ok2));
-
+    avg_p.W = avg_q.getW();
+    avg_p.X = avg_q.getX();
+    avg_p.Y = avg_q.getY();
+    avg_p.Z = avg_q.getZ();
+    
+    avg_tf.setOrigin(tf::Vector3(avg_p.x, avg_p.y, agv_p.z));
+    avg_tf.setRotation(avg_q);
+    
+    avg_map.set_tf_to_world(avg_tf, avg_p);
 
     return avg_map;
 }
