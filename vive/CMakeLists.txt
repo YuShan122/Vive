@@ -229,6 +229,18 @@ add_executable(vive_localization_plus src/vive_localization_plus.cpp)
 add_dependencies(vive_localization_plus ${catkin_EXPORTED_TARGETS})
 target_link_libraries(vive_localization_plus ${LIBS}  ${catkin_LIBRARIES} )
 
+add_executable(vive_localization_rival src/vive_localization_rival.cpp)
+add_dependencies(vive_localization_rival ${catkin_EXPORTED_TARGETS})
+target_link_libraries(vive_localization_rival ${LIBS}  ${catkin_LIBRARIES} )
+
+add_executable(vive_localization_rival_single src/vive_localization_rival_single.cpp)
+add_dependencies(vive_localization_rival_single ${catkin_EXPORTED_TARGETS})
+target_link_libraries(vive_localization_rival_single ${LIBS}  ${catkin_LIBRARIES} )
+
+add_executable(vive_NavToGeo src/vive_NavToGeo.cpp)
+add_dependencies(vive_NavToGeo ${catkin_EXPORTED_TARGETS})
+target_link_libraries(vive_NavToGeo ${LIBS}  ${catkin_LIBRARIES} )
+
 # add_executable(predict_enemy_vel src/predict_enemy_vel.cpp)
 # add_dependencies(predict_enemy_vel ${catkin_EXPORTED_TARGETS})
 # target_link_libraries(predict_enemy_vel ${LIBS}  ${catkin_LIBRARIES} )

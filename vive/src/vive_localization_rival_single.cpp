@@ -27,8 +27,8 @@ std::string tracker_SN_B = "LHR-15565625";
 std::string tracker_SN_C = "LHR-662B1E75";
 std::string tracker_SN_D = "LHR-38203A4C";
 std::string tracker_SN_E = "LHR-E833C29B";
-std::string tracker_serial_name = tracker_SN_A;
-std::string tracker_name = "tracker_A";
+std::string tracker_serial_name;
+std::string tracker_name;
 
 void intHandler(int dummy) {
     if (keepRunning == 0)
@@ -137,13 +137,14 @@ nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_) {
         transform_map2ToTracker.getOrigin().getZ()) / 3;
     vive_pose.pose.pose.position.z = 0;
     vive_pose.header.stamp = ros::Time::now();
-    vive_pose.header.frame_id = "map";
+    vive_pose.header.frame_id = "survive_map";
     
     transform_mapToTracker.setOrigin(tf::Vector3(
         vive_pose.pose.pose.position.x, vive_pose.pose.pose.position.y, vive_pose.pose.pose.position.z));
     transform_mapToTracker.setRotation(q);
-    br_.sendTransform(tf::StampedTransform(transform_mapToTracker, ros::Time::now(), "map", "tracker_avg"));
+    br_.sendTransform(tf::StampedTransform(transform_mapToTracker, ros::Time::now(), "survive_map", "tracker_avg"));
 
+    
     printf("transform: avg_pose (x y z W X Y Z)\n");
     printf("%6.3f, %6.3f, %6.3f, %6.3f, %6.3f, %6.3f, %6.3f\n",
         vive_pose.pose.pose.position.x * unit, vive_pose.pose.pose.position.y * unit, vive_pose.pose.pose.position.z * unit,
@@ -165,7 +166,7 @@ nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_) {
 
 tf::Vector3 last_out_vel;
 float alpha = 0.0001;
-float del_vel = 0.1;
+float del_vel = 0.15;
 tf::Vector3 lowpass_filter(tf::Vector3 in_vel)
 {
     tf::Vector3 out_vel;
@@ -192,6 +193,9 @@ int main(int argc, char** argv) {
     ros::Publisher pose_pub = nh.advertise<nav_msgs::Odometry>("rival1/odom", 10);
     tf::TransformBroadcaster br;
     tf::TransformListener listener;
+
+    tracker_serial_name = argv[2];
+    tracker_name = argv[1];
 
     initialize(nh);
     ros::Rate rate(freq);
@@ -254,14 +258,14 @@ int main(int argc, char** argv) {
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH0, ros::Time::now(), "survive_world", "LH0"));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH1, ros::Time::now(), "survive_world", "LH1"));
             br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH2, ros::Time::now(), "survive_world", "LH2"));
-            br.sendTransform(tf::StampedTransform(transform_LH0ToMap0, ros::Time::now(), "LH0", "map0"));
-            br.sendTransform(tf::StampedTransform(transform_LH1ToMap1, ros::Time::now(), "LH1", "map1"));
-            br.sendTransform(tf::StampedTransform(transform_LH2ToMap2, ros::Time::now(), "LH2", "map2"));
+            br.sendTransform(tf::StampedTransform(transform_LH0ToMap0, ros::Time::now(), "LH0", "survive_map0"));
+            br.sendTransform(tf::StampedTransform(transform_LH1ToMap1, ros::Time::now(), "LH1", "survive_map1"));
+            br.sendTransform(tf::StampedTransform(transform_LH2ToMap2, ros::Time::now(), "LH2", "survive_map2"));
             try {
-                listener.lookupTransform("map0", tracker_name, ros::Time(0), transform_map0ToTracker);
-                listener.lookupTransform("map1", tracker_name, ros::Time(0), transform_map1ToTracker);
-                listener.lookupTransform("map2", tracker_name, ros::Time(0), transform_map2ToTracker);
-                listener.lookupTransform("map0", "survive_world", ros::Time(0), transform_map0ToSurviveWorld);
+                listener.lookupTransform("survive_map0", tracker_name, ros::Time(0), transform_map0ToTracker);
+                listener.lookupTransform("survive_map1", tracker_name, ros::Time(0), transform_map1ToTracker);
+                listener.lookupTransform("survive_map2", tracker_name, ros::Time(0), transform_map2ToTracker);
+                listener.lookupTransform("survive_map0", "survive_world", ros::Time(0), transform_map0ToSurviveWorld);
             }
             catch (tf::TransformException& ex) {
                 ROS_ERROR("%s", ex.what());
@@ -282,7 +286,7 @@ int main(int argc, char** argv) {
         pose_ = avg_pose(br);
         
         try{
-            listener.lookupTransform("map0","survive_world", ros::Time(0), transform_SurviveWorldTomap);
+            listener.lookupTransform("survive_map0","survive_world", ros::Time(0), transform_SurviveWorldTomap);
         }
         catch(tf::TransformException& ex){ ROS_ERROR("%s", ex.what()); }
         double tole = 0.1;
