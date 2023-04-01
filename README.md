@@ -3,20 +3,20 @@
 
 ## Install
 ```bash=1
-# Move in ws
-chmod 777 install.sh
+git clone -b vive https://github.com/DIT-ROBOTICS/Eurobot-Localization.git --recursive
 ./install.sh
 source ~/.bashrc
+sudo apt-get install qtbase5-dev
+sudo apt-get install qtdeclarative5-dev
+sudo apt-get install libarmadillo-dev
 ```
-
-## Current launch file : 
-
-- Setup
+## Calibrate
+- 
 ```bash=1
-roslaunch eurobot_localization odometry_setup.launch
+roslaunch vive vive_calibrate.launch
 ```
 
 - Run
 ```bash=1
-roslaunch eurobot_localization eurobot_localization.launch
+roslaunch vive vive_localization.launch
 ```
