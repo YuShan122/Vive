@@ -104,8 +104,9 @@ void Robot::print_pose() {
     poseV.X = transform_from_map.getRotation().getX();
     poseV.Y = transform_from_map.getRotation().getY();
     poseV.Z = transform_from_map.getRotation().getZ();
-    std::cout << "trackerpose: " << robot_name << "/" << map_frame << "->" << tracker_frame << " (x y z W X Y Z)" << std::endl;
-    std::cout << poseV.x << poseV.y << poseV.z << poseV.W << poseV.X << poseV.Y << poseV.Z << std::endl;
+    std::cout << robot_name << "/" << "trackerpose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z)" << std::endl;
+    std::cout << poseV.x << " " << poseV.y << " " << poseV.z << " "
+        << poseV.W << " " << poseV.X << " " << poseV.Y << " " << poseV.Z << std::endl;
 }
 
 int freq = 21;
