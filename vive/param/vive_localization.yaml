@@ -19,5 +19,6 @@ LH2_Z: 0.689979
 LH2_x: 0.678097
 LH2_y: -0.077221
 LH2_z: -3.56333
-freq: 100
+freq: 20
 unit: 100
+max_distance_bt_maps: 0.1

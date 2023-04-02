@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
+#include <cmath>
+
 #include <survive_api.h>
 #include <os_generic.h>
 
@@ -24,216 +27,264 @@ void intHandler(int dummy) {
 
 #endif
 
+/*struct*/
 typedef struct vivePose {
     double x, y, z;
     double W, X, Y, Z;
-    double yaw, roll, pitch;
+    // double yaw, roll, pitch;
 }VIVEPOSE;
 
-class Tracker {
+/*classes and their functions*/
+class ViveDevice {
 public:
-    Tracker() {}
-    Tracker(char lt, std::string sn) {
-        letter = lt;
-        serial_num = sn;
-        frame = "tracker";
-        frame.push_back(letter);
-    }
-    void set_prefix(std::string pf_) {
-        world_frame = pf_ + "world";
-    }
-    std::string serial_num;
-    std::string frame;
-    std::string world_frame;
-    char letter;
-    tf::StampedTransform transform_from_map;
-    tf::StampedTransform transform_from_world;
-    void set_and_send_transform_from_world(tf::TransformBroadcaster br_, SurvivePose pose_) {
-        transform_from_world.setOrigin(tf::Vector3(pose_.Pos[0], pose_.Pos[1], pose_.Pos[2]));
-        transform_from_world.setRotation(tf::Quaternion(pose_.Rot[1], pose_.Rot[2], pose_.Rot[3], pose_.Rot[0]));
-        br_.sendTransform(tf::StampedTransform(
-            transform_from_world, ros::Time::now(), world_frame, frame));
-    }
+    ViveDevice();
+    ViveDevice(std::string spf_, const char* sn_);
+    void send_tf_from_world(SurvivePose p_, std::string wf_);
 private:
-};
-
-class Lighthouse {
-public:
-    Lighthouse() {}
-    Lighthouse(int od, std::string sn) {
-        order = od;
-        serial_num = sn;
-        frame = "LH" + std::to_string(order);
-    }
-    void set_prefix(std::string pf_) {
-        world_frame = pf_ + "world";
-        frame = pf_ + frame;
-    }
-    std::string serial_num;
     std::string frame;
-    std::string world_frame;
+    const char* serial_num;
+    tf::TransformBroadcaster br;
+    // tf::TransformListener listener;
+};
+ViveDevice::ViveDevice(std::string spf_, const char* sn_) {
+    serial_num = sn_;
+    if (strcmp(serial_num, "LHR-94135635") == 0) frame = "trackerA";
+    if (strcmp(serial_num, "LHR-15565625") == 0) frame = "trackerB";
+    if (strcmp(serial_num, "LHR-662B1E75") == 0) frame = "trackerC";
+    if (strcmp(serial_num, "LHR-38203A4C") == 0) frame = "trackerD";
+    if (strcmp(serial_num, "LHR-E833C29B") == 0) frame = "trackerE";
+    if (strcmp(serial_num, "LHB-400B1A3E") == 0) frame = spf_ + "LH0";
+    if (strcmp(serial_num, "LHB-D4EEE18") == 0) frame = spf_ + "LH1";
+    if (strcmp(serial_num, "LHB-2BEE096A") == 0) frame = spf_ + "LH2";
+}
+void ViveDevice::send_tf_from_world(SurvivePose p_, std::string wf_) {
+    tf::StampedTransform tf_from_world;
+    tf_from_world.setOrigin(tf::Vector3(p_.Pos[0], p_.Pos[1], p_.Pos[2]));
+    tf_from_world.setRotation(tf::Quaternion(p_.Rot[1], p_.Rot[2], p_.Rot[3], p_.Rot[0]));
+    br.sendTransform(tf::StampedTransform(tf_from_world, ros::Time::now(), wf_, frame));
+}
+
+class ViveMap {
+public:
+    ViveMap();
+    ViveMap(std::string f_);
+    ViveMap(std::string spf_, int od_);
+    void set_tf_from_lh(ros::NodeHandle nh_);
+    void send_tf_from_lh();
+    void lookup_tf_to_world(std::string wf_, tf::TransformListener& listener);
+    VIVEPOSE get_p_to_world(bool ok);
+    tf::Quaternion get_q_to_world_devide_by(int dvs, bool ok);
+    void set_tf_to_world(tf::StampedTransform tf_, VIVEPOSE p_);
+    void send_tf_to_world(std::string swf_);
+private:
+    std::string frame;
+    std::string lh_frame;
     int order;
-    VIVEPOSE p_to_map;
-    tf::StampedTransform transform_to_map;
-    tf::StampedTransform transform_from_world;
-    void set_transform_form_world(SurvivePose pose_) {
-        transform_from_world.setOrigin(
-            tf::Vector3(pose_.Pos[0], pose_.Pos[1], pose_.Pos[2]));
-        transform_from_world.setRotation(
-            tf::Quaternion(pose_.Rot[1], pose_.Rot[2], pose_.Rot[3], pose_.Rot[0]));
-    }
-    void set_transform_to_map() {
-        transform_to_map.setOrigin(tf::Vector3(p_to_map.x, p_to_map.y, p_to_map.z));
-        transform_to_map.setRotation(tf::Quaternion(p_to_map.X, p_to_map.Y, p_to_map.Z, p_to_map.W));
-    }
-    void send_transform_from_world(tf::TransformBroadcaster br_) {
-        br_.sendTransform(tf::StampedTransform(transform_from_world,
-            ros::Time::now(), world_frame, frame));
-    }
-    void send_transform_to_map(tf::TransformBroadcaster br_) {
-        br_.sendTransform(tf::StampedTransform(transform_to_map,
-            ros::Time::now(), frame, "map" + std::to_string(order)));
-    }
-private:
+    tf::StampedTransform tf_from_lh;
+    tf::StampedTransform tf_to_world;
+    VIVEPOSE p_from_lh;
+    VIVEPOSE p_to_world;
+    tf::TransformBroadcaster br;
+    // tf::TransformListener listener;
 };
-
-class Map {
-public:
-    Map() {
-        frame = "map";
+ViveMap::ViveMap(std::string f_) {
+    frame = f_;
+}
+ViveMap::ViveMap(std::string spf_, int od_) {
+    order = od_;
+    frame = spf_ + "map" + std::to_string(order);
+    lh_frame = spf_ + "LH" + std::to_string(order);
+}
+void ViveMap::set_tf_from_lh(ros::NodeHandle nh_) {
+    bool ok = true;
+    ok &= nh_.getParam("LH" + std::to_string(order) + "_x", p_from_lh.x);
+    ok &= nh_.getParam("LH" + std::to_string(order) + "_y", p_from_lh.y);
+    ok &= nh_.getParam("LH" + std::to_string(order) + "_z", p_from_lh.z);
+    ok &= nh_.getParam("LH" + std::to_string(order) + "_W", p_from_lh.W);
+    ok &= nh_.getParam("LH" + std::to_string(order) + "_X", p_from_lh.X);
+    ok &= nh_.getParam("LH" + std::to_string(order) + "_Y", p_from_lh.Y);
+    ok &= nh_.getParam("LH" + std::to_string(order) + "_Z", p_from_lh.Z);
+    if (ok) {
+        std::cout << "set tf: lh" << order << " to map" << order << " successed." << std::endl;
     }
-    Map(int od) {
-        order = od;
-        frame = "map" + std::to_string(order);
+    else {
+        std::cout << "set tf: lh" << order << " to map" << order << " failed." << std::endl;
     }
-    void set_prefix(std::string pf_) {
-        frame = pf_ + frame;
+    tf_from_lh.setOrigin(tf::Vector3(p_from_lh.x, p_from_lh.y, p_from_lh.z));
+    tf_from_lh.setRotation(tf::Quaternion(p_from_lh.X, p_from_lh.Y, p_from_lh.Z, p_from_lh.W));
+}
+void ViveMap::send_tf_from_lh() {
+    br.sendTransform(tf::StampedTransform(tf_from_lh, ros::Time::now(), lh_frame, frame));
+}
+void ViveMap::lookup_tf_to_world(std::string wf_, tf::TransformListener& listener) {
+    try {
+        listener.lookupTransform(frame, wf_, ros::Time(0), tf_to_world);
     }
-    int order;
-    std::string frame;
-    tf::StampedTransform transform_from_world;
-private:
-};
+    catch (tf::TransformException& ex) {
+        ROS_ERROR("%s", ex.what());
+    }
+    p_to_world.x = tf_to_world.getOrigin().getX();
+    p_to_world.y = tf_to_world.getOrigin().getY();
+    p_to_world.z = tf_to_world.getOrigin().getZ();
+    p_to_world.W = tf_to_world.getRotation().getW();
+    p_to_world.X = tf_to_world.getRotation().getX();
+    p_to_world.Y = tf_to_world.getRotation().getY();
+    p_to_world.Z = tf_to_world.getRotation().getZ();
+}
+VIVEPOSE ViveMap::get_p_to_world(bool ok = true) {
+    if (!ok) {
+        VIVEPOSE p_zero;
+        p_zero.x = 0;
+        p_zero.y = 0;
+        p_zero.z = 0;
+        p_zero.W = 0;
+        p_zero.X = 0;
+        p_zero.Y = 0;
+        p_zero.Z = 0;
+        return p_zero;
+    }
+    return p_to_world;
+}
+tf::Quaternion ViveMap::get_q_to_world_devide_by(int dvs, bool ok) {
+    tf::Quaternion q;
+    if (!ok) {
+        tf::Quaternion q_zero(0, 0, 0, 0);
+        return q_zero;
+    }
+    q = tf_to_world.getRotation().operator/(dvs);
+    return q;
+}
+void ViveMap::set_tf_to_world(tf::StampedTransform tf_, VIVEPOSE p_) {
+    tf_to_world = tf_;
+    p_to_world = p_;
+}
+void ViveMap::send_tf_to_world(std::string wf_) {
+    br.sendTransform(tf::StampedTransform(tf_to_world, ros::Time::now(), frame, wf_));
+}
 
-Tracker trackerA('A', "LHR-94135635");
-Tracker trackerB('B', "LHR-15565625");
-Tracker trackerC('C', "LHR-662B1E75");
-Tracker trackerD('D', "LHR-38203A4C");
-Tracker trackerE('E', "LHR-E833C29B");
-Lighthouse lh0(0, "LHB-400B1A3E");
-Lighthouse lh1(1, "LHB-D4EEE18");
-Lighthouse lh2(2, "LHB-2BEE096A");
-Map map;
-Map map0(0);
-Map map1(1);
-Map map2(2);
+/*globle variables*/
+std::string survive_prefix;
+std::string world_frame;
+std::string node_name;
+std::string name_space;
+int freq;
+int unit;
+double max_distance_bt_maps;
 
-int freq = 21;
-int unit = 1;
-int world_num = 1;
-std::string world_frame = "survive_world";
-std::string survive_prefix = "survive_";
+/*globle functions*/
+void initialize(ros::NodeHandle nh_) {
+    bool ok = true;
+    node_name = ros::this_node::getName();
+    name_space = ros::this_node::getNamespace();
+
+    ok &= nh_.getParam("freq", freq);
+    ok &= nh_.getParam("unit", unit);
+    ok &= nh_.getParam("survive_prefix", survive_prefix);
+    ok &= nh_.getParam("max_distance_bt_maps", max_distance_bt_maps);
+
+    std::cout << "param: freq= " << freq << std::endl;
+    std::cout << "param: unit= " << unit << std::endl;
+    std::cout << "param: survive_prefix= " << survive_prefix << std::endl;
+    std::cout << "param:max_distance_bt_maps= " << max_distance_bt_maps << std::endl;
+    if (ok) {
+        std::cout << "node: " << node_name << " get parameters of node sucessed." << std::endl;
+    }
+    else {
+        std::cout << "node: " << node_name << " get parameters of node failed." << std::endl;
+    }
+    std::cout << "node: " << node_name << " initialized." << "(in namespace: " << name_space << ")" << std::endl;
+
+    world_frame = survive_prefix + "world";
+}
+void deleteParam()
+{
+    std::string deleteparam = "rosparam delete " + node_name;
+    system(deleteparam.c_str());
+    std::cout << "node: " << node_name << " parameters deleted." << std::endl;
+}
+
+double find_distance(ViveMap map1, ViveMap map2) {
+    double distance;
+    double x = map1.get_p_to_world().x - map2.get_p_to_world().x;
+    double y = map1.get_p_to_world().y - map2.get_p_to_world().y;
+    double z = map1.get_p_to_world().z - map2.get_p_to_world().z;
+
+    distance = sqrt(x * x + y * y + z * z);
+    return distance;
+}
+ViveMap find_avg_map(ViveMap map0, ViveMap map1, ViveMap map2) {
+    ViveMap avg_map(survive_prefix + "map");
+    tf::Quaternion avg_q;
+    tf::StampedTransform avg_tf;
+    VIVEPOSE avg_p;
+    bool ok0 = true;
+    bool ok1 = true;
+    bool ok2 = true;
+    int divisor = 3;
+
+    double d01 = find_distance(map0, map1);
+    double d12 = find_distance(map1, map2);
+    double d20 = find_distance(map2, map0);
+    if (d01 > max_distance_bt_maps && d20 > max_distance_bt_maps) { ok0 = false; divisor--; }
+    if (d12 > max_distance_bt_maps && d01 > max_distance_bt_maps) { ok1 = false; divisor--; }
+    if (d20 > max_distance_bt_maps && d12 > max_distance_bt_maps) { ok2 = false; divisor--; }
+
+    if (divisor == 0) {
+        std::cout << world_frame << ": three maps do not match." << std::endl;
+        std::cout << "distances between maps(d01 d12 d20): "
+            << d01 << " " << d12 << " " << d20 << std::endl;
+        divisor = 1;
+    }
+    avg_p.x = (double)
+        map0.get_p_to_world(ok0).x / divisor +
+        map1.get_p_to_world(ok1).x / divisor +
+        map2.get_p_to_world(ok2).x / divisor;
+    avg_p.y = (double)
+        map0.get_p_to_world(ok0).y / divisor +
+        map1.get_p_to_world(ok1).y / divisor +
+        map2.get_p_to_world(ok2).y / divisor;
+    avg_p.z = (double)
+        map0.get_p_to_world(ok0).z / divisor +
+        map1.get_p_to_world(ok1).z / divisor +
+        map2.get_p_to_world(ok2).z / divisor;
+    avg_q =
+        map0.get_q_to_world_devide_by(divisor, ok0).operator+(
+            map1.get_q_to_world_devide_by(divisor, ok1)).operator+(
+                map2.get_q_to_world_devide_by(divisor, ok2));
+    avg_p.W = avg_q.getW();
+    avg_p.X = avg_q.getX();
+    avg_p.Y = avg_q.getY();
+    avg_p.Z = avg_q.getZ();
+
+    avg_tf.setOrigin(tf::Vector3(avg_p.x, avg_p.y, avg_p.z));
+    avg_tf.setRotation(avg_q);
+
+    //debug
+    // std::cout << "(ok0 ok1 ok2 divisor d01 012 d20) " << ok0 << " " << ok1 << " " << ok2 << " " <<
+    //     divisor << " " << d01 << " " << d12 << " " << d20 << std::endl;
+    // std::cout << "(avg_map x y z W X Y Z) " << avg_p.x << " " << avg_p.y << " " << avg_p.z <<
+    //     " " << avg_p.W << " " << avg_p.X << " " << avg_p.Y << " " << avg_p.Z << std::endl;
+    // std::cout << "(map0 x y z W X Y Z) " <<
+    //     map0.get_p_to_world().x << " " << map0.get_p_to_world().y << " " << map0.get_p_to_world().z <<
+    //     " " << map0.get_p_to_world().W << " " << map0.get_p_to_world().X <<
+    //     " " << map0.get_p_to_world().Y << " " << map0.get_p_to_world().Z << std::endl;
+    // std::cout << "(map1 x y z W X Y Z) " <<
+    //     map1.get_p_to_world().x << " " << map1.get_p_to_world().y << " " << map1.get_p_to_world().z <<
+    //     " " << map1.get_p_to_world().W << " " << map1.get_p_to_world().X <<
+    //     " " << map1.get_p_to_world().Y << " " << map1.get_p_to_world().Z << std::endl;
+    // std::cout << "(map2 x y z W X Y Z) " <<
+    //     map2.get_p_to_world().x << " " << map2.get_p_to_world().y << " " << map2.get_p_to_world().z <<
+    //     " " << map2.get_p_to_world().W << " " << map2.get_p_to_world().X <<
+    //     " " << map2.get_p_to_world().Y << " " << map2.get_p_to_world().Z << std::endl;
+
+    avg_map.set_tf_to_world(avg_tf, avg_p);
+
+    return avg_map;
+}
 
 static void log_fn(SurviveSimpleContext* actx, SurviveLogLevel logLevel, const char* msg) {
     fprintf(stderr, "(%7.3f) SimpleApi: %s\n", survive_simple_run_time(actx), msg);
 }
-
-void initialize(ros::NodeHandle nh_) {
-    bool get_param_ok;
-    auto node_name = ros::this_node::getName();
-    nh_.getParam(node_name + "/LH0_x", lh0.p_to_map.x);
-    nh_.getParam(node_name + "/LH0_y", lh0.p_to_map.y);
-    nh_.getParam(node_name + "/LH0_z", lh0.p_to_map.z);
-    nh_.getParam(node_name + "/LH0_W", lh0.p_to_map.W);
-    nh_.getParam(node_name + "/LH0_X", lh0.p_to_map.X);
-    nh_.getParam(node_name + "/LH0_Y", lh0.p_to_map.Y);
-    nh_.getParam(node_name + "/LH0_Z", lh0.p_to_map.Z);
-
-    nh_.getParam(node_name + "/LH1_x", lh1.p_to_map.x);
-    nh_.getParam(node_name + "/LH1_y", lh1.p_to_map.y);
-    nh_.getParam(node_name + "/LH1_z", lh1.p_to_map.z);
-    nh_.getParam(node_name + "/LH1_W", lh1.p_to_map.W);
-    nh_.getParam(node_name + "/LH1_X", lh1.p_to_map.X);
-    nh_.getParam(node_name + "/LH1_Y", lh1.p_to_map.Y);
-    nh_.getParam(node_name + "/LH1_Z", lh1.p_to_map.Z);
-
-    nh_.getParam(node_name + "/LH2_x", lh2.p_to_map.x);
-    nh_.getParam(node_name + "/LH2_y", lh2.p_to_map.y);
-    nh_.getParam(node_name + "/LH2_z", lh2.p_to_map.z);
-    nh_.getParam(node_name + "/LH2_W", lh2.p_to_map.W);
-    nh_.getParam(node_name + "/LH2_X", lh2.p_to_map.X);
-    nh_.getParam(node_name + "/LH2_Y", lh2.p_to_map.Y);
-    nh_.getParam(node_name + "/LH2_Z", lh2.p_to_map.Z);
-
-    lh0.set_transform_to_map();
-    lh1.set_transform_to_map();
-    lh2.set_transform_to_map();
-
-    nh_.getParam(node_name + "/freq", freq);
-    nh_.getParam(node_name + "/unit", unit);
-    nh_.getParam(node_name + "/survive_prefix", survive_prefix);
-
-    trackerA.set_prefix(survive_prefix);
-    trackerB.set_prefix(survive_prefix);
-    trackerC.set_prefix(survive_prefix);
-    trackerD.set_prefix(survive_prefix);
-    trackerE.set_prefix(survive_prefix);
-    lh0.set_prefix(survive_prefix);
-    lh1.set_prefix(survive_prefix);
-    lh2.set_prefix(survive_prefix);
-    map.set_prefix(survive_prefix);
-    map0.set_prefix(survive_prefix);
-    map1.set_prefix(survive_prefix);
-    map2.set_prefix(survive_prefix);
-    world_frame = survive_prefix + "world";
-}
-
-void deleteParam(ros::NodeHandle nh_)
-{
-    auto node_name = ros::this_node::getName();
-    std::string deleteparam = "rosparam delete " + node_name;
-    system(deleteparam.c_str());
-    printf("delete param\n");
-
-}
-
-
-Map map_avg(Map map_0, Map map_1, Map map_2) {
-    Map map_avg;
-    VIVEPOSE pose_avg;
-    tf::Quaternion q;
-    q = map_0.transform_from_world.getRotation().operator/(3).operator+
-        (map_1.transform_from_world.getRotation().operator/(3)).operator+
-        (map_2.transform_from_world.getRotation().operator/(3));
-    pose_avg.W = q.getW();
-    pose_avg.X = q.getX();
-    pose_avg.Y = q.getY();
-    pose_avg.Z = q.getZ();
-    pose_avg.x = (double)(
-        map_0.transform_from_world.getOrigin().getX() +
-        map_1.transform_from_world.getOrigin().getX() +
-        map_2.transform_from_world.getOrigin().getX()) / 3;
-    pose_avg.y = (double)(
-        map_0.transform_from_world.getOrigin().getY() +
-        map_1.transform_from_world.getOrigin().getY() +
-        map_2.transform_from_world.getOrigin().getY()) / 3;
-    pose_avg.z = (double)(
-        map_0.transform_from_world.getOrigin().getZ() +
-        map_1.transform_from_world.getOrigin().getZ() +
-        map_2.transform_from_world.getOrigin().getZ()) / 3;
-
-    map_avg.transform_from_world.setOrigin(tf::Vector3(
-        pose_avg.x, pose_avg.y, pose_avg.z));
-    map_avg.transform_from_world.setRotation(q);
-
-    printf("survive_world to map_avg (x y z W X Y Z)\n");
-    printf("%f, %f, %f, %f, %f, %f, %f\n",
-        pose_avg.x, pose_avg.y, pose_avg.z,
-        pose_avg.W, pose_avg.X,
-        pose_avg.Y, pose_avg.Z);
-    return map_avg;
-};
-
 
 int main(int argc, char** argv) {
 #ifdef __linux__
@@ -244,95 +295,69 @@ int main(int argc, char** argv) {
 
     ros::init(argc, argv, "vive_world");
     ros::NodeHandle nh;
+    ros::NodeHandle nh_("~");
     tf::TransformBroadcaster br;
     tf::TransformListener listener;
-
-    initialize(nh);
-    ros::Rate rate(freq);
 
     SurviveSimpleContext* actx = survive_simple_init_with_logger(argc, argv, log_fn);
     if (actx == 0) // implies -help or similiar
         return 0;
-
     double start_time = OGGetAbsoluteTime();
     survive_simple_start_thread(actx);
-
     for (const SurviveSimpleObject* it = survive_simple_get_first_object(actx); it != 0;
         it = survive_simple_get_next_object(actx, it)) {
         printf("Found '%s'\n", survive_simple_object_name(it));
     }
+
+    initialize(nh_);
+    ros::Rate rate(freq);
+    // ViveMap map(survive_prefix + "map");
+    ViveMap map0(survive_prefix, 0);
+    ViveMap map1(survive_prefix, 1);
+    ViveMap map2(survive_prefix, 2);
+    map0.set_tf_from_lh(nh_);
+    map1.set_tf_from_lh(nh_);
+    map2.set_tf_from_lh(nh_);
 
     struct SurviveSimpleEvent event = {};
     while (keepRunning && survive_simple_wait_for_event(actx, &event) != SurviveSimpleEventType_Shutdown && ros::ok()) {
         for (const SurviveSimpleObject* it = survive_simple_get_first_object(actx);
             it != 0; it = survive_simple_get_next_object(actx, it)) {
             SurvivePose pose;
+            SurviveVelocity velocity;
             survive_simple_object_get_latest_pose(it, &pose);
+            survive_simple_object_get_latest_velocity(it, &velocity);
             printf("%s, %s, %f, %f, %f, %f, %f, %f, %f\n",
                 survive_simple_object_name(it), survive_simple_serial_number(it),
                 pose.Pos[0], pose.Pos[1], pose.Pos[2],
                 pose.Rot[0], pose.Rot[1], pose.Rot[2], pose.Rot[3]);
-            if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT) {
-                SurviveVelocity velocity;
-                survive_simple_object_get_latest_velocity(it, &velocity);
-                // printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it),
-                //     velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
-                if (strcmp(survive_simple_serial_number(it), trackerA.serial_num.c_str()) == 0)
-                {
-                    trackerA.set_and_send_transform_from_world(br, pose);
-                }
-                else if (strcmp(survive_simple_serial_number(it), trackerB.serial_num.c_str()) == 0)
-                {
-                    trackerB.set_and_send_transform_from_world(br, pose);
-                }
-                else if (strcmp(survive_simple_serial_number(it), trackerC.serial_num.c_str()) == 0)
-                {
-                    trackerC.set_and_send_transform_from_world(br, pose);
-                }
-                else if (strcmp(survive_simple_serial_number(it), trackerD.serial_num.c_str()) == 0)
-                {
-                    trackerD.set_and_send_transform_from_world(br, pose);
-                }
-                else if (strcmp(survive_simple_serial_number(it), trackerE.serial_num.c_str()) == 0)
-                {
-                    trackerE.set_and_send_transform_from_world(br, pose);
-                }
+            // printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it),
+            //     velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
 
-            }
-            else if (survive_simple_object_get_type(it) == SurviveSimpleObject_LIGHTHOUSE) {
-                if (strcmp(survive_simple_serial_number(it), lh0.serial_num.c_str()) == 0) {
-                    lh0.set_transform_form_world(pose);
-                    lh0.send_transform_from_world(br);
-                    lh0.send_transform_to_map(br);
-                }
-                else if (strcmp(survive_simple_serial_number(it), lh1.serial_num.c_str()) == 0) {
-                    lh1.set_transform_form_world(pose);
-                    lh1.send_transform_from_world(br);
-                    lh1.send_transform_to_map(br);
-                }
-                else if (strcmp(survive_simple_serial_number(it), lh2.serial_num.c_str()) == 0) {
-                    lh2.set_transform_form_world(pose);
-                    lh2.send_transform_from_world(br);
-                    lh2.send_transform_to_map(br);
-                }
-            }
+            ViveDevice device(survive_prefix, survive_simple_serial_number(it));
+            device.send_tf_from_world(pose, world_frame);
+            // if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT) {
+            // }
+            // else if (survive_simple_object_get_type(it) == SurviveSimpleObject_LIGHTHOUSE) {
+            // }
         }
-        try {
-            listener.lookupTransform(map0.frame, world_frame, ros::Time(0), map0.transform_from_world);
-            listener.lookupTransform(map1.frame, world_frame, ros::Time(0), map1.transform_from_world);
-            listener.lookupTransform(map2.frame, world_frame, ros::Time(0), map2.transform_from_world);
-        }
-        catch (tf::TransformException& ex) {
-            ROS_ERROR("%s", ex.what());
-        }
-        map = map_avg(map0, map1, map2);
-        br.sendTransform(tf::StampedTransform(map.transform_from_world, ros::Time::now(), survive_prefix + "map", world_frame));
+
+        map0.send_tf_from_lh();
+        map1.send_tf_from_lh();
+        map2.send_tf_from_lh();
+        map0.lookup_tf_to_world(world_frame, listener);
+        map1.lookup_tf_to_world(world_frame, listener);
+        map2.lookup_tf_to_world(world_frame, listener);
+
+        ViveMap map = find_avg_map(map0, map1, map2);
+        map.send_tf_to_world(world_frame);
+
+        rate.sleep();
     }
-    rate.sleep();
 
-    deleteParam(nh);
+    deleteParam();
     survive_simple_close(actx);
-    printf("Cleaning up\n");
+    std::cout << "node: " << node_name << " closed." << std::endl;
     return 0;
 }
 
