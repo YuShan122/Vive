@@ -3,7 +3,6 @@
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
             <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
             <param name ="survive_prefix" type="string" value="survive1_"/>
-            <param name ="tracker_num" type="int" value="2"/>
         </node>
     </group>
 
