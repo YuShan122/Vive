@@ -327,31 +327,34 @@ int main(int argc, char** argv) {
             SurviveVelocity velocity;
             survive_simple_object_get_latest_pose(it, &pose);
             survive_simple_object_get_latest_velocity(it, &velocity);
-            printf("%s, %s, %f, %f, %f, %f, %f, %f, %f\n",
-                survive_simple_object_name(it), survive_simple_serial_number(it),
+            printf("%d, %d, %d, %s, %s, %u%, %f, %f, %f, %f, %f, %f, %f\n",
+                survive_simple_is_running(actx),
+                survive_simple_wait_for_update(actx),
+                event.event_type,
+                survive_simple_object_name(it),
+                survive_simple_serial_number(it),
+                survive_simple_object_charge_percet(it),
                 pose.Pos[0], pose.Pos[1], pose.Pos[2],
                 pose.Rot[0], pose.Rot[1], pose.Rot[2], pose.Rot[3]);
             // printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it),
             //     velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
 
-            ViveDevice device(survive_prefix, survive_simple_serial_number(it));
-            device.send_tf_from_world(pose, world_frame);
-            // if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT) {
-            // }
-            // else if (survive_simple_object_get_type(it) == SurviveSimpleObject_LIGHTHOUSE) {
-            // }
+            if (event.event_type == SurviveSimpleEventType_PoseUpdateEvent) {
+                ViveDevice device(survive_prefix, survive_simple_serial_number(it));
+                device.send_tf_from_world(pose, world_frame);
+            }
         }
+        if (event.event_type == SurviveSimpleEventType_PoseUpdateEvent) {
+            map0.send_tf_from_lh();
+            map1.send_tf_from_lh();
+            map2.send_tf_from_lh();
+            map0.lookup_tf_to_world(world_frame, listener);
+            map1.lookup_tf_to_world(world_frame, listener);
+            map2.lookup_tf_to_world(world_frame, listener);
 
-        map0.send_tf_from_lh();
-        map1.send_tf_from_lh();
-        map2.send_tf_from_lh();
-        map0.lookup_tf_to_world(world_frame, listener);
-        map1.lookup_tf_to_world(world_frame, listener);
-        map2.lookup_tf_to_world(world_frame, listener);
-
-        ViveMap map = find_avg_map(map0, map1, map2);
-        map.send_tf_to_world(world_frame);
-
+            ViveMap map = find_avg_map(map0, map1, map2);
+            map.send_tf_to_world(world_frame);
+        }
         rate.sleep();
     }
 
