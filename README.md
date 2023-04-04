@@ -21,6 +21,7 @@ make
 catkin_make -DCATKIN_WHITELIST_PACKAGES="vive"
 ```
 將libsurvive內找不到路徑的handerfile改成絕對路徑
+應該會有三個以上的檔案要改：`linmath.h、cn_matrix.h、cn_matrix.hpp`
 > `../libs/cnkalman/libs/cnmatrix/include/cnmatrix/cn_matrix.h`
 
 
