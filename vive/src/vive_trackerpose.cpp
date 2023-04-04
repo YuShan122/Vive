@@ -20,7 +20,7 @@ public:
     Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l);
     void lookup_transform_from_map();
     void publish_vive_pose();
-    void print_pose();
+    void print_pose(int unit_);
 private:
     ros::NodeHandle nh;
     ros::NodeHandle nh_;
@@ -32,7 +32,7 @@ private:
     std::string robot_name;
     std::string tracker_frame;
     std::string map_frame;
-    bool active;
+    bool has_tf;
     double covariance[36];
     VIVEPOSE poseV;
 };
@@ -65,7 +65,7 @@ Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     }
 }
 void Robot::lookup_transform_from_map() {
-    // if (listener.canTransform("map", tracker_frame, ros::Time::now())) {
+    has_tf = listener.canTransform(map_frame, tracker_frame, ros::Time(0));
     try {
         listener.lookupTransform(map_frame, tracker_frame, ros::Time(0), transform_from_map);
     }
@@ -73,48 +73,51 @@ void Robot::lookup_transform_from_map() {
         printf("%s", ex.what());
         std::cout << "connot transform from " << map_frame << " to " << tracker_frame << std::endl;
     }
-    // }
-    // else {
-        // printf("%s cannot transform\n", tracker_frame);
-    // }
 }
 void Robot::publish_vive_pose() {
-    pose.pose.pose.orientation.w = transform_from_map.getRotation().getW();
-    pose.pose.pose.orientation.x = transform_from_map.getRotation().getX();
-    pose.pose.pose.orientation.y = transform_from_map.getRotation().getY();
-    pose.pose.pose.orientation.z = transform_from_map.getRotation().getZ();
-    pose.pose.pose.position.x = transform_from_map.getOrigin().getX();
-    pose.pose.pose.position.y = transform_from_map.getOrigin().getY();
-    pose.pose.pose.position.z = transform_from_map.getOrigin().getZ();
-    pose.header.stamp = ros::Time::now();
-    pose.header.frame_id = tracker_frame;
-    pose.pose.covariance[0] = covariance[0];
-    pose.pose.covariance[7] = covariance[7];
-    pose.pose.covariance[14] = covariance[14];
-    pose.pose.covariance[21] = covariance[21];
-    pose.pose.covariance[28] = covariance[28];
-    pose.pose.covariance[35] = covariance[35];
-    pose_pub.publish(pose);
+    if (has_tf) {
+        pose.pose.pose.orientation.w = transform_from_map.getRotation().getW();
+        pose.pose.pose.orientation.x = transform_from_map.getRotation().getX();
+        pose.pose.pose.orientation.y = transform_from_map.getRotation().getY();
+        pose.pose.pose.orientation.z = transform_from_map.getRotation().getZ();
+        pose.pose.pose.position.x = transform_from_map.getOrigin().getX();
+        pose.pose.pose.position.y = transform_from_map.getOrigin().getY();
+        pose.pose.pose.position.z = transform_from_map.getOrigin().getZ();
+        pose.header.stamp = ros::Time::now();
+        pose.header.frame_id = tracker_frame;
+        pose.pose.covariance[0] = covariance[0];
+        pose.pose.covariance[7] = covariance[7];
+        pose.pose.covariance[14] = covariance[14];
+        pose.pose.covariance[21] = covariance[21];
+        pose.pose.covariance[28] = covariance[28];
+        pose.pose.covariance[35] = covariance[35];
+        pose_pub.publish(pose);
+    }
 }
-void Robot::print_pose() {
-    poseV.x = transform_from_map.getOrigin().getX();
-    poseV.y = transform_from_map.getOrigin().getY();
-    poseV.z = transform_from_map.getOrigin().getZ();
-    poseV.W = transform_from_map.getRotation().getW();
-    poseV.X = transform_from_map.getRotation().getX();
-    poseV.Y = transform_from_map.getRotation().getY();
-    poseV.Z = transform_from_map.getRotation().getZ();
-    std::cout << robot_name << "/" << "trackerpose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z)" << std::endl;
-    std::cout << poseV.x << " " << poseV.y << " " << poseV.z << " "
-        << poseV.W << " " << poseV.X << " " << poseV.Y << " " << poseV.Z << std::endl;
+void Robot::print_pose(int unit_) {
+    poseV.x = transform_from_map.getOrigin().getX() * unit_;
+    poseV.y = transform_from_map.getOrigin().getY() * unit_;
+    poseV.z = transform_from_map.getOrigin().getZ() * unit_;
+    poseV.W = transform_from_map.getRotation().getW() * unit_;
+    poseV.X = transform_from_map.getRotation().getX() * unit_;
+    poseV.Y = transform_from_map.getRotation().getY() * unit_;
+    poseV.Z = transform_from_map.getRotation().getZ() * unit_;
+    if (has_tf) {
+        std::cout << robot_name << "/" << "trackerpose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z)" << std::endl;
+        std::cout << poseV.x << " " << poseV.y << " " << poseV.z << " "
+            << poseV.W << " " << poseV.X << " " << poseV.Y << " " << poseV.Z << std::endl;
+    }
+    else {
+        std::cout << robot_name << "/" << map_frame << "->" << tracker_frame << " do not have tf." << std::endl;
+    }
 }
 
-int freq = 21;
-int unit;
+int freq = 20;
+int unit = 1;
 std::string name_space;
 std::string node_name;
 
-bool initialize(ros::NodeHandle nh_) {
+void initialize(ros::NodeHandle nh_) {
     bool ok = true;
     node_name = ros::this_node::getName();
     name_space = ros::this_node::getNamespace();
@@ -127,10 +130,8 @@ bool initialize(ros::NodeHandle nh_) {
     }
     else {
         std::cout << "node: " << node_name << " get parameters of node failed." << std::endl;
-        return false;
     }
     std::cout << "node: " << node_name << " initialized." << "(in namespace: " << name_space << ")" << std::endl;
-    return true;
 }
 void deleteParam() {
     std::string deleteparam = "rosparam delete " + node_name;
@@ -151,7 +152,7 @@ int main(int argc, char** argv) {
 
         robot.lookup_transform_from_map();
         robot.publish_vive_pose();
-        robot.print_pose();
+        robot.print_pose(unit);
 
         rate.sleep();
     }
