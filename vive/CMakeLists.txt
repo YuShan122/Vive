@@ -134,8 +134,8 @@ include_directories(
   ../libsurvive/include/libsurvive
   ../libsurvive/src
   ../libsurvive/redist
-  ../cnmatix/include
   ../cnmatix/include/cnmatrix
+  ../libsurvive/libs/cmkalman/**
 )
 
 link_directories(../libsurvive/libs)
@@ -183,10 +183,6 @@ ${PROJECT_SOURCE_DIR}/../libsurvive/bin/libsurvive.so
 )
 
 
-add_executable(lighthouse_tf src/lighthouse_tf.cpp)
-add_dependencies(lighthouse_tf ${catkin_EXPORTED_TARGETS})
-target_link_libraries(lighthouse_tf  ${catkin_LIBRARIES})
-
 add_executable(lighthouse_tf_plus src/lighthouse_tf_plus.cpp)
 add_dependencies(lighthouse_tf_plus ${catkin_EXPORTED_TARGETS})
 target_link_libraries(lighthouse_tf_plus  ${catkin_LIBRARIES})
@@ -213,11 +209,11 @@ target_link_libraries(api_simple_test ${LIBS}  ${catkin_LIBRARIES} )
 add_executable(vive_calibrate src/vive_calibrate.cpp)
 target_link_libraries(vive_calibrate ${LIBS}  ${catkin_LIBRARIES} )
 
-add_executable(vive_localization src/vive_localization.cpp)
-target_link_libraries(vive_localization ${LIBS}  ${catkin_LIBRARIES} )
+# add_executable(vive_localization src/vive_localization.cpp)
+# target_link_libraries(vive_localization ${LIBS}  ${catkin_LIBRARIES} )
 
-add_executable(vive_localization_multi src/vive_localization_multi.cpp)
-target_link_libraries(vive_localization_multi ${LIBS}  ${catkin_LIBRARIES} )
+# add_executable(vive_localization_multi src/vive_localization_multi.cpp)
+# target_link_libraries(vive_localization_multi ${LIBS}  ${catkin_LIBRARIES} )
 
 add_executable(vive_world src/vive_world.cpp)
 target_link_libraries(vive_world ${LIBS}  ${catkin_LIBRARIES} )
@@ -225,13 +221,12 @@ target_link_libraries(vive_world ${LIBS}  ${catkin_LIBRARIES} )
 add_executable(vive_trackerpose src/vive_trackerpose.cpp)
 target_link_libraries(vive_trackerpose ${LIBS}  ${catkin_LIBRARIES} )
 
-add_executable(vive_localization_plus src/vive_localization_plus.cpp)
-add_dependencies(vive_localization_plus ${catkin_EXPORTED_TARGETS})
-target_link_libraries(vive_localization_plus ${LIBS}  ${catkin_LIBRARIES} )
+add_executable(vive_rival src/vive_rival.cpp)
+target_link_libraries(vive_rival ${LIBS}  ${catkin_LIBRARIES} )
 
-add_executable(vive_localization_rival src/vive_localization_rival.cpp)
-add_dependencies(vive_localization_rival ${catkin_EXPORTED_TARGETS})
-target_link_libraries(vive_localization_rival ${LIBS}  ${catkin_LIBRARIES} )
+# add_executable(vive_localization_plus src/vive_localization_plus.cpp)
+# add_dependencies(vive_localization_plus ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(vive_localization_plus ${LIBS}  ${catkin_LIBRARIES} )
 
 add_executable(vive_localization_rival_single src/vive_localization_rival_single.cpp)
 add_dependencies(vive_localization_rival_single ${catkin_EXPORTED_TARGETS})

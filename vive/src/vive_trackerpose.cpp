@@ -39,7 +39,7 @@ private:
 Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     nh = nh_g;
     nh_ = nh_l;
-    pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("lidar_bonbonbon", 10);   //topic name: [ns of <group>]/lidar_bonbonbon
+    pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("vive_bonbonbon", 10);   //topic name: [ns of <group>]/lidar_bonbonbon
     node_name_ = ros::this_node::getName();
     bool ok = true;
     ok &= nh_.getParam("tracker", tracker_frame);       //path: under this node

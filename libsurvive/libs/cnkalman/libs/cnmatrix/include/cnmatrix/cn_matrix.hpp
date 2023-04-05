@@ -2,7 +2,7 @@
 #ifndef CNMATRIX_INCLUDED_FIRST
 #error "Include <cnmatrix/cn_matrix.h>; not cn_matrix.hpp"
 #endif
-#include <cnmatrix/cn_matrix.h>
+#include <../libs/cnkalman/libs/cnmatrix/include/cnmatrix/cn_matrix.h>
 #include <memory>
 
 namespace cnmatrix {

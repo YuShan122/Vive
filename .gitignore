@@ -1,6 +1,5 @@
 build/*
 devel/*
-!libsurvive.so
 .YDLidar-SDK/*
 obstacle_detector/*
 .vscode/*

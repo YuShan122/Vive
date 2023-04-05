@@ -9,7 +9,22 @@ source ~/.bashrc
 sudo apt-get install qtbase5-dev
 sudo apt-get install qtdeclarative5-dev
 sudo apt-get install libarmadillo-dev
+
+cd libsurvive
+sudo cp ./useful_files/81-vive.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules && udevadm trigger
+make
 ```
+
+## complie
+```bash=1
+catkin_make -DCATKIN_WHITELIST_PACKAGES="vive"
+```
+將libsurvive內找不到路徑的handerfile改成絕對路徑
+應該會有三個以上的檔案要改：`linmath.h、cn_matrix.h、cn_matrix.hpp`
+> `../libs/cnkalman/libs/cnmatrix/include/cnmatrix/cn_matrix.h`
+
+
 ## Calibrate
 - 
 ```bash=1
