@@ -1,5 +1,5 @@
-freq: 21
-unit: 1
+freq: 20
+unit: 100
 
 covariance0: 1.0
 covariance7: 1.0

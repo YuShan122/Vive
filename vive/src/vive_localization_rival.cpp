@@ -123,21 +123,21 @@ void deleteParam(ros::NodeHandle nh_)
 tf::StampedTransform transform_map0ToTracker;
 tf::StampedTransform transform_map1ToTracker;
 tf::StampedTransform transform_map2ToTracker;
-nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_,std::string name) {
+nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_, std::string name) {
     nav_msgs::Odometry vive_pose;
     vive_pose.header.frame_id = "tracker_frame" + name;
     vive_pose.child_frame_id = "map";
-    if(strcmp(name.c_str(),tracker_name_rival1.c_str() ) == 0){
+    if (strcmp(name.c_str(), tracker_name_rival1.c_str()) == 0) {
         transform_map0ToTracker = transform_map0ToTracker_A;
         transform_map1ToTracker = transform_map1ToTracker_A;
         transform_map2ToTracker = transform_map2ToTracker_A;
     }
-    else if (strcmp(name.c_str(), tracker_name_rival2.c_str()) == 0){
+    else if (strcmp(name.c_str(), tracker_name_rival2.c_str()) == 0) {
         transform_map0ToTracker = transform_map0ToTracker_B;
         transform_map1ToTracker = transform_map1ToTracker_B;
         transform_map2ToTracker = transform_map2ToTracker_B;
     }
-     
+
     tf::Quaternion q;
     q = transform_map0ToTracker.getRotation().operator/(3).operator+
         (transform_map1ToTracker.getRotation().operator/(3)).operator+
@@ -161,7 +161,7 @@ nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_,std::string name) {
     vive_pose.pose.pose.position.z = 0;
     vive_pose.header.stamp = ros::Time::now();
     vive_pose.header.frame_id = "map";
-    
+
     transform_mapToTracker.setOrigin(tf::Vector3(
         vive_pose.pose.pose.position.x, vive_pose.pose.pose.position.y, vive_pose.pose.pose.position.z));
     transform_mapToTracker.setRotation(q);
@@ -172,7 +172,7 @@ nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_,std::string name) {
         vive_pose.pose.pose.position.x * unit, vive_pose.pose.pose.position.y * unit, vive_pose.pose.pose.position.z * unit,
         vive_pose.pose.pose.orientation.w, vive_pose.pose.pose.orientation.x,
         vive_pose.pose.pose.orientation.y, vive_pose.pose.pose.orientation.z);
-    
+
     return vive_pose;
 }
 
@@ -180,9 +180,9 @@ tf::Vector3 rival1_last_out_vel, rival2_last_out_vel;
 tf::Vector3 lowpass_filter(tf::Vector3 in_vel, tf::Vector3 last_out_vel)
 {
     tf::Vector3 out_vel;
-    for(int i = 0; i<3; i++)
+    for (int i = 0; i < 3; i++)
     {
-        out_vel[i] = (1-alpha)*last_out_vel[i] + alpha*in_vel[i];
+        out_vel[i] = (1 - alpha) * last_out_vel[i] + alpha * in_vel[i];
         last_out_vel[i] = out_vel[i];
     }
     return out_vel;
@@ -227,12 +227,12 @@ int main(int argc, char** argv) {
         case SurviveSimpleEventType_PoseUpdateEvent: {
             for (const SurviveSimpleObject* it = survive_simple_get_first_object(actx);
                 it != 0; it = survive_simple_get_next_object(actx, it)) {
-                
+
                 survive_simple_object_get_latest_pose(it, &pose);
                 if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT) {
                     survive_simple_object_get_latest_velocity(it, &velocity);
                     // printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it), velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
-                    if(strcmp(survive_simple_serial_number(it), tracker_SerialName_rival1.c_str()) == 0){
+                    if (strcmp(survive_simple_serial_number(it), tracker_SerialName_rival1.c_str()) == 0) {
                         transform_surviveWorldToTracker_A.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
                         transform_surviveWorldToTracker_A.setRotation(tf::Quaternion(pose.Rot[1], pose.Rot[2], pose.Rot[3], pose.Rot[0]));
                         rival1_vel.x = velocity.Pos[0];
@@ -241,12 +241,12 @@ int main(int argc, char** argv) {
                         rival1_vel.pitch = velocity.AxisAngleRot[0];
                         rival1_vel.roll = velocity.AxisAngleRot[1];
                         rival1_vel.yaw = velocity.AxisAngleRot[2];
-                        if(debug){
+                        if (debug) {
                             printf("API rival1 velocity\n");
-                            printf("%8.4f %8.4f %8.4f\n",rival1_vel.x,rival1_vel.y,rival1_vel.z);
-                        } 
+                            printf("%8.4f %8.4f %8.4f\n", rival1_vel.x, rival1_vel.y, rival1_vel.z);
+                        }
                     }
-                    else if(strcmp(survive_simple_serial_number(it), tracker_SerialName_rival2.c_str()) == 0){
+                    else if (strcmp(survive_simple_serial_number(it), tracker_SerialName_rival2.c_str()) == 0) {
                         transform_surviveWorldToTracker_B.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
                         transform_surviveWorldToTracker_B.setRotation(tf::Quaternion(pose.Rot[1], pose.Rot[2], pose.Rot[3], pose.Rot[0]));
                         rival2_vel.x = velocity.Pos[0];
@@ -255,9 +255,9 @@ int main(int argc, char** argv) {
                         rival2_vel.pitch = velocity.AxisAngleRot[0];
                         rival2_vel.roll = velocity.AxisAngleRot[1];
                         rival2_vel.yaw = velocity.AxisAngleRot[2];
-                        if(debug){
+                        if (debug) {
                             printf("API rival1 velocity\n");
-                            printf("%8.4f %8.4f %8.4f\n",rival2_vel.x,rival2_vel.y,rival2_vel.z);
+                            printf("%8.4f %8.4f %8.4f\n", rival2_vel.x, rival2_vel.y, rival2_vel.z);
                         }
                     }
                 }
@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
                 ROS_ERROR("%s", ex.what());
             }
 
-            if(debug){
+            if (debug) {
                 printf("transform: map0 to tracker_A\n");
                 printf("%f, %f, %f\n", transform_map0ToTracker_A.getOrigin().x() * unit,
                     transform_map0ToTracker_A.getOrigin().y() * unit, transform_map0ToTracker_A.getOrigin().z() * unit);
@@ -306,7 +306,7 @@ int main(int argc, char** argv) {
                 printf("transform: map2 to tracker_A\n");
                 printf("%f, %f, %f\n", transform_map2ToTracker_A.getOrigin().x() * unit,
                     transform_map2ToTracker_A.getOrigin().y() * unit, transform_map2ToTracker_A.getOrigin().z() * unit);
-                
+
                 printf("transform: map0 to tracker_B\n");
                 printf("%f, %f, %f\n", transform_map0ToTracker_B.getOrigin().x() * unit,
                     transform_map0ToTracker_B.getOrigin().y() * unit, transform_map0ToTracker_B.getOrigin().z() * unit);
@@ -320,27 +320,27 @@ int main(int argc, char** argv) {
             break;
         }
         }
-        
+
         rival1_pose = avg_pose(br, tracker_name_rival1);
         rival2_pose = avg_pose(br, tracker_name_rival2);
-        try{
-            listener.lookupTransform("map0","survive_world", ros::Time(0), transform_SurviveWorldTomap);
+        try {
+            listener.lookupTransform("map0", "survive_world", ros::Time(0), transform_SurviveWorldTomap);
         }
-        catch(tf::TransformException& ex){ ROS_ERROR("%s", ex.what()); }
+        catch (tf::TransformException& ex) { ROS_ERROR("%s", ex.what()); }
 
         // set up rotation matrix equation & trans
         tf::Vector3 twist_rival1_vel(rival1_vel.x, rival1_vel.y, rival1_vel.z);
         tf::Vector3 twist_rival1_rot(rival1_vel.roll, rival1_vel.pitch, rival1_vel.yaw);
         tf::Vector3 out_rival1_rot = transform_SurviveWorldTomap.getBasis() * twist_rival1_rot;
-        tf::Vector3 out_rival1_vel = transform_SurviveWorldTomap.getBasis() * twist_rival1_vel ;
+        tf::Vector3 out_rival1_vel = transform_SurviveWorldTomap.getBasis() * twist_rival1_vel;
 
         tf::Vector3 twist_rival2_vel(rival2_vel.x, rival2_vel.y, rival2_vel.z);
         tf::Vector3 twist_rival2_rot(rival2_vel.roll, rival2_vel.pitch, rival2_vel.yaw);
         tf::Vector3 out_rival2_rot = transform_SurviveWorldTomap.getBasis() * twist_rival2_rot;
-        tf::Vector3 out_rival2_vel = transform_SurviveWorldTomap.getBasis() * twist_rival2_vel ;
+        tf::Vector3 out_rival2_vel = transform_SurviveWorldTomap.getBasis() * twist_rival2_vel;
 
-        out_rival1_vel = lowpass_filter(out_rival1_vel,rival1_last_out_vel);
-        out_rival2_vel = lowpass_filter(out_rival2_vel,rival2_last_out_vel);
+        out_rival1_vel = lowpass_filter(out_rival1_vel, rival1_last_out_vel);
+        out_rival2_vel = lowpass_filter(out_rival2_vel, rival2_last_out_vel);
 
         rival1_pose.twist.twist.linear.x = abs(out_rival1_vel[0]) > tole ? out_rival1_vel[0] : 0.0;
         rival1_pose.twist.twist.linear.y = abs(out_rival1_vel[1]) > tole ? out_rival1_vel[1] : 0.0;
@@ -360,7 +360,7 @@ int main(int argc, char** argv) {
         printf("%4.2f, %4.2f, %4.2f, %4.2f\n", rival1_pose.twist.twist.linear.x, rival1_pose.twist.twist.linear.y, rival1_pose.twist.twist.linear.z, rival1_pose.twist.twist.angular.z);
         printf("rival2 vel\n");
         printf("%4.2f, %4.2f, %4.2f, %4.2f\n", rival2_pose.twist.twist.linear.x, rival2_pose.twist.twist.linear.y, rival2_pose.twist.twist.linear.z, rival2_pose.twist.twist.angular.z);
-        
+
         rival1_pub.publish(rival1_pose);
         rival2_pub.publish(rival2_pose);
         rate.sleep();

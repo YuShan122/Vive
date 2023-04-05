@@ -4,7 +4,8 @@
     tracker_SN_C = "LHR-662B1E75";
     tracker_SN_D = "LHR-38203A4C";
     tracker_SN_E = "LHR-E833C29B"; -->
-    <node name="vive_localization_rival_single" pkg="vive" type="vive_localization_rival_single" output="screen" args="tracker_A LHR-94135635">
+    <!-- <node name="vive_localization_rival_single" pkg="vive" type="vive_localization_rival_single" output="screen" args="tracker_A LHR-94135635"> -->
+    <node name="vive_localization_rival_single" pkg="vive" type="vive_localization_rival_single" output="screen" args="tracker_B LHR-15565625">
         <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
     </node>
     <node type="vive_NavToGeo" name="vive_NavToGeo" pkg="vive" args="robot1/vive_bonbonbon" >
