@@ -1,6 +1,44 @@
 <launch>
-    <node name="vive_localization_rival" pkg="vive" type="vive_localization_rival" output="screen">
-        <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
-        <rosparam file="$(find vive)/param/vive_localization_rival.yaml" command="load" />
-    </node>
+    <arg name="rival1_active" default="true"/>
+    <arg name="rival2_active" default="false"/>
+    <arg name="fake_robot1" default="false"/>
+    <arg name="fake_robot2" default="false"/>
+
+    <group ns="rival1" if="$(arg rival1_active)">
+        <node name="vive_localization_rival_single" pkg="vive" type="vive_localization_rival_single" output="screen">
+            <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
+            <param name="tracker_name" type="string" value="tracker_C"/>
+            <param name="topic_name" type="string" value="/odom"/>
+            <param name="alpha" type="double" value="0.4"/>
+            <param name="del_vel" type="double" value="0.2"/>
+        </node>
+    </group>
+    <group ns="robot1" if="$(arg fake_robot1)">
+        <node type="vive_NavToGeo" name="vive_NavToGeo" pkg="vive" args="/robot1/vive_bonbonbon" >
+                <param name="topic_name" type="string" value="/rival1/odom"/>
+                <param name="covariance_0" type="double" value="0.001"/>
+                <param name="covariance_7" type="double" value="0.001"/>
+                <param name="covariance_35" type="double" value="0.001"/>
+        </node>
+    </group>
+
+
+    <group ns="rival2" if="$(arg rival2_active)">
+        <node name="vive_localization_rival_single" pkg="vive" type="vive_localization_rival_single" output="screen">
+            <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
+            <param name="tracker_name" type="string" value="tracker_A"/>
+            <param name="topic_name" type="string" value="/odom"/>
+            <param name="alpha" type="double" value="0.4"/>
+            <param name="del_vel" type="double" value="0.3"/>
+        </node>
+    </group>
+    <group ns="robot2" if="$(arg fake_robot2)">
+        <node type="vive_NavToGeo" name="vive_NavToGeo" pkg="vive" args="/vive_bonbonbon" >
+                <param name="topic_name" type="string" value="/odom"/>
+                <param name="covariance_0" type="double" value="0.001"/>
+                <param name="covariance_7" type="double" value="0.001"/>
+                <param name="covariance_35" type="double" value="0.001"/>
+        </node>
+    </group>
+
 </launch>

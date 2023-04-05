@@ -1,0 +1,37 @@
+<launch>
+    <arg name="rival1_active" default="true"/>
+    <arg name="rival2_active" default="false"/>
+    
+    <group ns="rival1" if="$(arg rival1_active)">
+        <node name="vive_rival" pkg="vive" type="vive_rival" output="screen">
+            <param name="tracker" type="string" value="trackerB"/>  <!-- need to check -->
+            <param name="map" type="string" value="survive3_map"/>  <!-- need to check -->
+            <param name="world" type="string" value="survive3_world"/>  <!-- need to check -->
+            <param name="topic_name" type="string" value="/rival1/odom"/>  <!-- need to check -->
+            
+            <param name="alpha" type="double" value="0.4"/>
+            <param name="del_vel" type="double" value="0.2"/>
+            <param name="tole" type="double" value="0.1"/>
+            
+            <param name="freq" type="int" value="20"/>
+            <param name="unit" type="int" value="1"/>
+        </node>
+    </group>
+
+    <group ns="rival2" if="$(arg rival2_active)">
+        <node name="vive_rival" pkg="vive" type="vive_rival" output="screen">
+            <param name="tracker" type="string" value="trackerC"/>  <!-- need to check -->
+            <param name="map" type="string" value="survive4_map"/>  <!-- need to check -->
+            <param name="world" type="string" value="survive4_world"/>  <!-- need to check -->
+            <param name="topic_name" type="string" value="/rival2/odom"/>  <!-- need to check -->
+            
+            <param name="alpha" type="double" value="0.4"/>
+            <param name="del_vel" type="double" value="0.2"/>
+            <param name="tole" type="double" value="0.1"/>
+            
+            <param name="freq" type="int" value="20"/>
+            <param name="unit" type="int" value="1"/>
+        </node>
+    </group>
+
+</launch>

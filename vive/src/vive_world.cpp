@@ -31,7 +31,7 @@ void intHandler(int dummy) {
 typedef struct vivePose {
     double x, y, z;
     double W, X, Y, Z;
-    // double yaw, roll, pitch;
+    double yaw, roll, pitch;
 }VIVEPOSE;
 
 /*classes and their functions*/
@@ -39,10 +39,12 @@ class ViveDevice {
 public:
     ViveDevice();
     ViveDevice(std::string spf_, const char* sn_);
+    
     void send_tf_from_world(SurvivePose p_, std::string wf_);
 private:
     std::string frame;
     const char* serial_num;
+    VIVEPOSE tracker_vel;
     tf::TransformBroadcaster br;
     // tf::TransformListener listener;
 };
@@ -315,6 +317,7 @@ int main(int argc, char** argv) {
     ViveMap map0(survive_prefix, 0);
     ViveMap map1(survive_prefix, 1);
     ViveMap map2(survive_prefix, 2);
+    V
     map0.set_tf_from_lh(nh_);
     map1.set_tf_from_lh(nh_);
     map2.set_tf_from_lh(nh_);

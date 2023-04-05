@@ -22,13 +22,28 @@ static volatile int keepRunning = 1;
 #include <signal.h>
 #include <stdlib.h>
 
+std::string survive_frame;
+std::string tracker_frame;
+std::string tracker_avg_frame;
+std::string map_frame;
+std::string map0_frame;
+std::string map1_frame;
+std::string map2_frame;
+std::string lh0_frame;
+std::string lh1_frame;
+std::string lh2_frame;
+
 std::string tracker_SN_A = "LHR-94135635";
 std::string tracker_SN_B = "LHR-15565625";
 std::string tracker_SN_C = "LHR-662B1E75";
 std::string tracker_SN_D = "LHR-38203A4C";
 std::string tracker_SN_E = "LHR-E833C29B";
-std::string tracker_serial_name;
+std::string tracker_serial_number;
 std::string tracker_name;
+std::string robot_name;
+std::string topic_name;
+
+bool status = true;
 
 void intHandler(int dummy) {
     if (keepRunning == 0)
@@ -64,9 +79,12 @@ static void log_fn(SurviveSimpleContext* actx, SurviveLogLevel logLevel, const c
 
 int freq = 21;
 int unit = 1;
+double alpha=0.01;
+double del_vel=0.3;
 void initialize(ros::NodeHandle nh_) {
     bool get_param_ok;
     auto node_name = ros::this_node::getName();
+    robot_name = ros::this_node::getNamespace();
     nh_.getParam(node_name + "/LH0_x", LH0.x);
     nh_.getParam(node_name + "/LH0_y", LH0.y);
     nh_.getParam(node_name + "/LH0_z", LH0.z);
@@ -92,6 +110,27 @@ void initialize(ros::NodeHandle nh_) {
     nh_.getParam(node_name + "/LH2_Z", LH2.Z);
     nh_.getParam(node_name + "/freq", freq);
     nh_.getParam(node_name + "/unit", unit);
+    nh_.getParam(node_name + "/alpha", alpha);
+    nh_.getParam(node_name + "/del_vel", del_vel);
+    nh_.getParam(node_name + "/tracker_name", tracker_name);
+    nh_.getParam(node_name + "/topic_name", topic_name);
+
+    survive_frame = robot_name + "/survive_world";
+    tracker_frame = robot_name + "/tracker";
+    tracker_avg_frame = robot_name + "/tracker_avg";
+    map_frame = robot_name + "/map";
+    map0_frame = robot_name + "/map0";
+    map1_frame = robot_name + "/map1";
+    map2_frame = robot_name + "/map2";
+    lh0_frame = robot_name + "/LH0";
+    lh1_frame = robot_name + "/LH1";
+    lh2_frame = robot_name + "/LH2";
+    
+    if(strcmp("tracker_A", tracker_name.c_str()) == 0) tracker_serial_number = "LHR-94135635" ;
+    if(strcmp("tracker_B", tracker_name.c_str()) == 0) tracker_serial_number = "LHR-15565625" ;
+    if(strcmp("tracker_C", tracker_name.c_str()) == 0) tracker_serial_number = "LHR-662B1E75" ;
+    if(strcmp("tracker_D", tracker_name.c_str()) == 0) tracker_serial_number = "LHR-38203A4C" ;
+    if(strcmp("tracker_E", tracker_name.c_str()) == 0) tracker_serial_number = "LHR-E833C29B" ;
 
     transform_LH0ToMap0.setOrigin(tf::Vector3(LH0.x, LH0.y, LH0.z));
     transform_LH0ToMap0.setRotation(tf::Quaternion(LH0.X, LH0.Y, LH0.Z, LH0.W));
@@ -113,7 +152,7 @@ ros::Time last_time;
 double dt;
 nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_) {
     nav_msgs::Odometry vive_pose;
-    vive_pose.header.frame_id = "tracker_frame";
+    vive_pose.header.frame_id = robot_name + "/tracker_frame";
     vive_pose.child_frame_id = "map";
     tf::Quaternion q;
     q = transform_map0ToTracker.getRotation().operator/(3).operator+
@@ -137,15 +176,15 @@ nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_) {
         transform_map2ToTracker.getOrigin().getZ()) / 3;
     vive_pose.pose.pose.position.z = 0;
     vive_pose.header.stamp = ros::Time::now();
-    vive_pose.header.frame_id = "survive_map";
+    vive_pose.header.frame_id = map_frame;
     
     transform_mapToTracker.setOrigin(tf::Vector3(
         vive_pose.pose.pose.position.x, vive_pose.pose.pose.position.y, vive_pose.pose.pose.position.z));
     transform_mapToTracker.setRotation(q);
-    br_.sendTransform(tf::StampedTransform(transform_mapToTracker, ros::Time::now(), "survive_map", "tracker_avg"));
+    br_.sendTransform(tf::StampedTransform(transform_mapToTracker, ros::Time::now(), map_frame, tracker_avg_frame));
 
     
-    printf("transform: avg_pose (x y z W X Y Z)\n");
+    printf("%s avg_pose (x y z W X Y Z)\n", robot_name.c_str());
     printf("%6.3f, %6.3f, %6.3f, %6.3f, %6.3f, %6.3f, %6.3f\n",
         vive_pose.pose.pose.position.x * unit, vive_pose.pose.pose.position.y * unit, vive_pose.pose.pose.position.z * unit,
         vive_pose.pose.pose.orientation.w, vive_pose.pose.pose.orientation.x,
@@ -165,16 +204,14 @@ nav_msgs::Odometry avg_pose(tf::TransformBroadcaster br_) {
 }
 
 tf::Vector3 last_out_vel;
-float alpha = 0.0001;
-float del_vel = 0.15;
 tf::Vector3 lowpass_filter(tf::Vector3 in_vel)
 {
     tf::Vector3 out_vel;
     for(int i = 0; i<3; i++)
     {
-        if(abs(in_vel[i]-last_out_vel[i])>del_vel){
-            in_vel[i] = last_out_vel[i];
-        }
+        // if(abs(in_vel[i]-last_out_vel[i])>del_vel){
+        //     in_vel[i] = last_out_vel[i];
+        // }
         out_vel[i] = (1-alpha)*last_out_vel[i] + alpha*in_vel[i];
         last_out_vel[i] = out_vel[i];
     }
@@ -190,14 +227,11 @@ int main(int argc, char** argv) {
 
     ros::init(argc, argv, "vive_localization_rival_single");
     ros::NodeHandle nh;
-    ros::Publisher pose_pub = nh.advertise<nav_msgs::Odometry>("rival1/odom", 10);
     tf::TransformBroadcaster br;
     tf::TransformListener listener;
 
-    tracker_serial_name = argv[2];
-    tracker_name = argv[1];
-
     initialize(nh);
+    ros::Publisher pose_pub = nh.advertise<nav_msgs::Odometry>(robot_name + topic_name, 10);
     ros::Rate rate(freq);
     nav_msgs::Odometry pose_;
     last_time = ros::Time::now();
@@ -224,7 +258,7 @@ int main(int argc, char** argv) {
                 it != 0; it = survive_simple_get_next_object(actx, it)) {
 
                 survive_simple_object_get_latest_pose(it, &pose);
-                if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT && strcmp(survive_simple_serial_number(it), tracker_serial_name.c_str()) == 0) {
+                if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT && strcmp(survive_simple_serial_number(it), tracker_serial_number.c_str()) == 0) {
                     survive_simple_object_get_latest_velocity(it, &velocity);
                     // printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it), velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
                     transform_surviveWorldToTracker.setOrigin(tf::Vector3(pose.Pos[0], pose.Pos[1], pose.Pos[2]));
@@ -254,18 +288,18 @@ int main(int argc, char** argv) {
                     }
                 }
             }
-            br.sendTransform(tf::StampedTransform(transform_surviveWorldToTracker, ros::Time::now(), "survive_world", tracker_name));
-            br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH0, ros::Time::now(), "survive_world", "LH0"));
-            br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH1, ros::Time::now(), "survive_world", "LH1"));
-            br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH2, ros::Time::now(), "survive_world", "LH2"));
-            br.sendTransform(tf::StampedTransform(transform_LH0ToMap0, ros::Time::now(), "LH0", "survive_map0"));
-            br.sendTransform(tf::StampedTransform(transform_LH1ToMap1, ros::Time::now(), "LH1", "survive_map1"));
-            br.sendTransform(tf::StampedTransform(transform_LH2ToMap2, ros::Time::now(), "LH2", "survive_map2"));
+            br.sendTransform(tf::StampedTransform(transform_surviveWorldToTracker, ros::Time::now(), survive_frame, tracker_frame));
+            br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH0, ros::Time::now(), survive_frame, lh0_frame));
+            br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH1, ros::Time::now(), survive_frame, lh1_frame));
+            br.sendTransform(tf::StampedTransform(transform_surviveWorldToLH2, ros::Time::now(), survive_frame, lh2_frame));
+            br.sendTransform(tf::StampedTransform(transform_LH0ToMap0, ros::Time::now(), lh0_frame, map0_frame));
+            br.sendTransform(tf::StampedTransform(transform_LH1ToMap1, ros::Time::now(), lh1_frame, map1_frame));
+            br.sendTransform(tf::StampedTransform(transform_LH2ToMap2, ros::Time::now(), lh2_frame, map2_frame));
             try {
-                listener.lookupTransform("survive_map0", tracker_name, ros::Time(0), transform_map0ToTracker);
-                listener.lookupTransform("survive_map1", tracker_name, ros::Time(0), transform_map1ToTracker);
-                listener.lookupTransform("survive_map2", tracker_name, ros::Time(0), transform_map2ToTracker);
-                listener.lookupTransform("survive_map0", "survive_world", ros::Time(0), transform_map0ToSurviveWorld);
+                listener.lookupTransform(map0_frame, tracker_frame, ros::Time(0), transform_map0ToTracker);
+                listener.lookupTransform(map1_frame, tracker_frame, ros::Time(0), transform_map1ToTracker);
+                listener.lookupTransform(map2_frame, tracker_frame, ros::Time(0), transform_map2ToTracker);
+                listener.lookupTransform(map0_frame, survive_frame, ros::Time(0), transform_map0ToSurviveWorld);
             }
             catch (tf::TransformException& ex) {
                 ROS_ERROR("%s", ex.what());
@@ -286,7 +320,7 @@ int main(int argc, char** argv) {
         pose_ = avg_pose(br);
         
         try{
-            listener.lookupTransform("survive_map0","survive_world", ros::Time(0), transform_SurviveWorldTomap);
+            listener.lookupTransform(map0_frame,survive_frame, ros::Time(0), transform_SurviveWorldTomap);
         }
         catch(tf::TransformException& ex){ ROS_ERROR("%s", ex.what()); }
         double tole = 0.1;
@@ -297,7 +331,7 @@ int main(int argc, char** argv) {
         // tf::Vector3 out_vel = transform_SurviveWorldTomap.getBasis() * twist_vel + transform_SurviveWorldTomap.getOrigin().cross(out_rot);
         tf::Vector3 out_vel = transform_SurviveWorldTomap.getBasis() * twist_vel ;
 
-        // out_vel = lowpass_filter(out_vel);
+        out_vel = lowpass_filter(out_vel);
         pose_.twist.twist.linear.x = abs(out_vel[0]) > tole ? out_vel[0] : 0.0;
         pose_.twist.twist.linear.y = abs(out_vel[1]) > tole ? out_vel[1] : 0.0;
         pose_.twist.twist.linear.z = abs(out_vel[2]) > tole ? out_vel[2] : 0.0;
@@ -311,9 +345,9 @@ int main(int argc, char** argv) {
         // pose_.twist.twist.linear.y = abs(tracker_vel.y) > tole ? int(tracker_vel.y/resolution)*resolution : 0.0;
         // pose_.twist.twist.linear.z = abs(tracker_vel.z) > tole ? int(tracker_vel.z/resolution)*resolution : 0.0;
 
-        printf("tracker vel\n");
+        printf("%s tracker vel\n",robot_name.c_str());
         printf("%5.1f, %5.1f, %5.1f\n", pose_.twist.twist.linear.x, pose_.twist.twist.linear.y, pose_.twist.twist.linear.z);
-        printf("tracker rota\n");
+        printf("%s tracker rota\n",robot_name.c_str());
         printf("%5.4f\n", pose_.twist.twist.angular.z);
 
         pose_pub.publish(pose_);

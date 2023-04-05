@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 #include <malloc.h>
-#include "cnmatrix/cn_flt.h"
+#include "../libs/cnkalman/libs/cnmatrix/include/cnmatrix/cn_flt.h"
 #include "math.h"
 #include "string.h"
 #include <assert.h>
@@ -466,6 +466,6 @@ static inline std::vector<std::vector<FLT>> cnMatToVectorVector(const CnMat& m) 
     return vv;
 }
 #define CNMATRIX_INCLUDED_FIRST
-#include <cnmatrix/cn_matrix.hpp>
+#include <../libs/cnkalman/libs/cnmatrix/include/cnmatrix/cn_matrix.hpp>
 
 #endif

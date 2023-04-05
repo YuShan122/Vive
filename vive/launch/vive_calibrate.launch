@@ -2,6 +2,7 @@
     
     <node name="vive_calibrate" pkg="vive" type="vive_calibrate" output="screen">
         <rosparam file="$(find vive)/param/vive_calibrate.yaml" command="load" />
+        <param name="tracker_name" type="string" value="tracker_C"/>
     </node>
 
 </launch>
