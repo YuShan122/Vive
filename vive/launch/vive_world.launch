@@ -1,9 +1,10 @@
 <launch>
-    <group ns="survive3">
+    <group ns="survive1">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
             <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
-            <param name ="survive_prefix" type="string" value="survive3_"/>
-            <param name ="topic_name" type="string" value="/rival1/tracker_vel"/>
+            <param name ="tracker" type="string" value="trackerA"/> <!--the tracker used for publishing velocity-->
+            <param name ="survive_prefix" type="string" value="survive1_"/>
+            <param name ="vel_topic_name" type="string" value="/robot1/tracker_vel"/>
             <param name ="max_distance_bt_maps" type="double" value="0.1"/>
         </node>
     </group>

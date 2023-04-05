@@ -39,14 +39,12 @@ class ViveDevice {
 public:
     ViveDevice();
     ViveDevice(std::string spf_, const char* sn_);
-    
     void send_tf_from_world(SurvivePose p_, std::string wf_);
+    void pub_tracker_vel(ros::Publisher pub_, SurviveVelocity vel_, std::string tracker_);
 private:
     std::string frame;
     const char* serial_num;
-    VIVEPOSE tracker_vel;
     tf::TransformBroadcaster br;
-    // tf::TransformListener listener;
 };
 ViveDevice::ViveDevice(std::string spf_, const char* sn_) {
     serial_num = sn_;
@@ -64,6 +62,18 @@ void ViveDevice::send_tf_from_world(SurvivePose p_, std::string wf_) {
     tf_from_world.setOrigin(tf::Vector3(p_.Pos[0], p_.Pos[1], p_.Pos[2]));
     tf_from_world.setRotation(tf::Quaternion(p_.Rot[1], p_.Rot[2], p_.Rot[3], p_.Rot[0]));
     br.sendTransform(tf::StampedTransform(tf_from_world, ros::Time::now(), wf_, frame));
+}
+void ViveDevice::pub_tracker_vel(ros::Publisher pub_, SurviveVelocity vel_, std::string tracker_) {
+    if (strcmp(tracker_.c_str(), frame.c_str()) == 0) {
+        geometry_msgs::Twist tracker_vel;
+        tracker_vel.linear.x = vel_.Pos[0];
+        tracker_vel.linear.y = vel_.Pos[1];
+        tracker_vel.linear.z = vel_.Pos[2];
+        tracker_vel.angular.x = vel_.AxisAngleRot[0];
+        tracker_vel.angular.y = vel_.AxisAngleRot[1];
+        tracker_vel.angular.z = vel_.AxisAngleRot[2];
+        pub_.publish(tracker_vel);
+    }
 }
 
 class ViveMap {
@@ -169,6 +179,8 @@ std::string survive_prefix;
 std::string world_frame;
 std::string node_name;
 std::string name_space;
+std::string vel_topic_name;
+std::string tracker;
 int freq;
 int unit;
 double max_distance_bt_maps;
@@ -181,7 +193,9 @@ void initialize(ros::NodeHandle nh_) {
 
     ok &= nh_.getParam("freq", freq);
     ok &= nh_.getParam("unit", unit);
+    ok &= nh_.getParam("tracker", tracker);
     ok &= nh_.getParam("survive_prefix", survive_prefix);
+    ok &= nh_.getParam("vel_topic_name", vel_topic_name);
     ok &= nh_.getParam("max_distance_bt_maps", max_distance_bt_maps);
 
     std::cout << "param: freq= " << freq << std::endl;
@@ -313,11 +327,12 @@ int main(int argc, char** argv) {
 
     initialize(nh_);
     ros::Rate rate(freq);
+    ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>(vel_topic_name, 10);
     // ViveMap map(survive_prefix + "map");
     ViveMap map0(survive_prefix, 0);
     ViveMap map1(survive_prefix, 1);
     ViveMap map2(survive_prefix, 2);
-    V
+
     map0.set_tf_from_lh(nh_);
     map1.set_tf_from_lh(nh_);
     map2.set_tf_from_lh(nh_);
@@ -339,12 +354,13 @@ int main(int argc, char** argv) {
                 survive_simple_object_charge_percet(it),
                 pose.Pos[0], pose.Pos[1], pose.Pos[2],
                 pose.Rot[0], pose.Rot[1], pose.Rot[2], pose.Rot[3]);
-            // printf("%s velocity : \nx : %f\ny : %f\nz : %f\n", survive_simple_object_name(it),
-            //     velocity.Pos[0], velocity.Pos[1], velocity.Pos[2]);
 
             if (event.event_type == SurviveSimpleEventType_PoseUpdateEvent) {
                 ViveDevice device(survive_prefix, survive_simple_serial_number(it));
                 device.send_tf_from_world(pose, world_frame);
+                if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT) {
+                    device.pub_tracker_vel(vel_pub, velocity, tracker);
+                }
             }
         }
         if (event.event_type == SurviveSimpleEventType_PoseUpdateEvent) {
