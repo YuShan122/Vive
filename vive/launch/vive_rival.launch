@@ -10,7 +10,7 @@
             <param name="topic_name" type="string" value="/rival1/odom"/>  <!-- need to check -->
             
             <param name="alpha" type="double" value="0.4"/>
-            <param name="del_vel" type="double" value="0.2"/>
+            <param name="del_vel" type="double" value="0.3"/>
             <param name="tole" type="double" value="0.1"/>
             
             <param name="freq" type="int" value="20"/>
