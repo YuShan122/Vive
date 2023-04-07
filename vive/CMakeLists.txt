@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   tf
   geometry_msgs
+  obstacle_detector
   # pkg_check_modules(YAMLCPP yaml-cpp REQUIRED)
   # if(YAMLCPP_VERSION VERSION_GREATER "0.5.0")
   #   add_definitions(-DHAVE_YAMLCPP_GT_0_5_0)

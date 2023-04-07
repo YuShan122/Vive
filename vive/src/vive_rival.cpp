@@ -10,6 +10,7 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <std_srvs/SetBool.h>
 
 bool status = true; //tracker status 
 
@@ -111,9 +112,9 @@ void Rival::trans_vel(){
 tf::Vector3 Rival::lowpass_filter(tf::Vector3 in_vel){
     for(int i = 0; i<3; i++)
     {
-        // if(abs(in_vel[i]-last_out_vel[i]) > del_vel){
-        //     in_vel[i] = last_out_vel[i];
-        // }
+        if(abs(in_vel[i]-last_out_vel[i]) > del_vel){
+            in_vel[i] = last_out_vel[i];
+        }
         out_vel[i] = (1-alpha)*last_out_vel[i] + alpha*in_vel[i];
         last_out_vel[i] = out_vel[i];
     }
@@ -141,7 +142,7 @@ void Rival::lookup_transform_from_map() {
     }
 }
 void Rival::publish_vive_pose(bool status) {
-    if (has_tf) {
+    if (has_tf && status) {
         pose.pose.pose.orientation.w = transform_from_map.getRotation().getW();
         pose.pose.pose.orientation.x = transform_from_map.getRotation().getX();
         pose.pose.pose.orientation.y = transform_from_map.getRotation().getY();
@@ -155,14 +156,15 @@ void Rival::publish_vive_pose(bool status) {
         pose.twist.twist.angular.x = 0;
         pose.twist.twist.angular.y = 0;
         pose.twist.twist.angular.z = abs(in_rot[2]) > tole ? in_rot[2] : 0.0;
-
+    }
+    else{
+        ROS_WARN_STREAM("tracker failure!!\nchange to lidar info"); 
+        
+    }
         pose.header.stamp = ros::Time::now();
         pose.header.frame_id = tracker_frame;
-        if(status)
-            pose_pub.publish(pose);
-        else
-            ROS_WARN_STREAM("Stop to publish!!");    
-    }
+        pose_pub.publish(pose);
+
 }
 void Rival::print_pose(int unit_) {
     poseV.x = transform_from_map.getOrigin().getX() * unit_;
@@ -188,6 +190,8 @@ void Rival::print_pose(int unit_) {
 int freq = 20;
 int unit = 1;
 std::string node_name;
+bool world_is_running = true;
+
 void initialize(ros::NodeHandle nh_) {
     bool ok = true;
     node_name = ros::this_node::getName();
@@ -205,10 +209,17 @@ void deleteParam() {
     std::cout << "node: " << node_name << " parameters deleted" << std::endl;
 }
 
+bool run_srv_func(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) {
+    world_is_running = req.data;
+    res.success = true;
+    return true;
+}
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "vive_trackerpose");
     ros::NodeHandle nh; //path: the ns of <group> of the launch file
     ros::NodeHandle nh_("~");   //path: this node
+    ros::ServiceServer run_srv = nh.advertiseService("survive_world_is_running", run_srv_func);
     initialize(nh_);
     ros::Rate rate(freq);
 
@@ -216,10 +227,12 @@ int main(int argc, char** argv) {
 
     while (ros::ok()) {
         ros::spinOnce();
-        rival.trans_vel();
-        rival.lookup_transform_from_map();
-        rival.publish_vive_pose(status);
-        rival.print_pose(unit);
+        if (world_is_running) {
+            rival.trans_vel();
+            rival.lookup_transform_from_map();
+            rival.publish_vive_pose(status);
+            rival.print_pose(unit);
+        }
         rate.sleep();
     }
 
