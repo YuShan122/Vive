@@ -5,11 +5,13 @@
 #include <ros/ros.h>
 // #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
+#include <std_msgs/Float64.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
+bool status = true; //tracker status 
 
 typedef struct vivePose {
     double x, y, z;
@@ -22,16 +24,18 @@ public:
     Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p);
     void vel_callback(const geometry_msgs::Twist::ConstPtr& msg);
     void lookup_transform_from_map();
-    void publish_vive_pose();
+    void publish_vive_pose(bool status);
     void print_pose(int unit_);
     void trans_vel();
     tf::Vector3 lowpass_filter(tf::Vector3 in_vel);
+    bool check_status(tf::Vector3 in_vel);
 
 private:
     ros::NodeHandle nh;
     ros::NodeHandle nh_local;
     ros::Subscriber vel_sub;
     ros::Publisher pose_pub;
+    ros::Publisher error_pub;
     // geometry_msgs::PoseWithCovarianceStamped pose;
     nav_msgs::Odometry pose;
     tf::TransformListener listener;
@@ -55,6 +59,7 @@ private:
     double alpha;
     double del_vel;
     double tole;
+    double error_tole;
 
     bool has_tf;
     VIVEPOSE poseV;
@@ -72,9 +77,11 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("alpha", alpha);
     ok &= nh_local.getParam("del_vel", del_vel);
     ok &= nh_local.getParam("tole", tole);
+    ok &= nh_local.getParam("error_tole", error_tole);
 
     vel_sub = nh.subscribe("tracker_vel",10, &Rival::vel_callback, this);
-    pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);  
+    pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
+    error_pub = nh.advertise<std_msgs::Float64>(robot_name + "/error", 10);    
 
     std::cout << node_name_ << " getting parameters of the robot...\n";
     std::cout << "robot name: " << robot_name << "\n";
@@ -99,19 +106,29 @@ void Rival::trans_vel(){
     in_vel = transform_SurviveWorldTomap.getBasis() * twist_vel;
 
     out_vel = lowpass_filter(in_vel);
+    status = check_status(in_vel);
 }
 tf::Vector3 Rival::lowpass_filter(tf::Vector3 in_vel){
     for(int i = 0; i<3; i++)
     {
-        if(abs(in_vel[i]-last_out_vel[i]) > del_vel){
-            in_vel[i] = last_out_vel[i];
-        }
+        // if(abs(in_vel[i]-last_out_vel[i]) > del_vel){
+        //     in_vel[i] = last_out_vel[i];
+        // }
         out_vel[i] = (1-alpha)*last_out_vel[i] + alpha*in_vel[i];
         last_out_vel[i] = out_vel[i];
     }
     return out_vel;
 }
-
+bool Rival::check_status(tf::Vector3 in_vel){
+    double error;
+    error = sqrt(pow(abs(in_vel[0]-last_out_vel[0]),2) + pow(abs(in_vel[1]-last_out_vel[1]), 2));
+    error_pub.publish(error);
+    // if(error >= error_tole)
+    //     return false;
+    // else
+    //     return true; 
+    return true;
+}
 
 void Rival::lookup_transform_from_map() {
     has_tf = listener.canTransform(map_frame, tracker_frame, ros::Time(0));
@@ -123,7 +140,7 @@ void Rival::lookup_transform_from_map() {
         std::cout << "connot transform from " << map_frame << " to " << tracker_frame <<"\n";
     }
 }
-void Rival::publish_vive_pose() {
+void Rival::publish_vive_pose(bool status) {
     if (has_tf) {
         pose.pose.pose.orientation.w = transform_from_map.getRotation().getW();
         pose.pose.pose.orientation.x = transform_from_map.getRotation().getX();
@@ -141,7 +158,10 @@ void Rival::publish_vive_pose() {
 
         pose.header.stamp = ros::Time::now();
         pose.header.frame_id = tracker_frame;
-        pose_pub.publish(pose);
+        if(status)
+            pose_pub.publish(pose);
+        else
+            ROS_WARN_STREAM("Stop to publish!!");    
     }
 }
 void Rival::print_pose(int unit_) {
@@ -198,7 +218,7 @@ int main(int argc, char** argv) {
         ros::spinOnce();
         rival.trans_vel();
         rival.lookup_transform_from_map();
-        rival.publish_vive_pose();
+        rival.publish_vive_pose(status);
         rival.print_pose(unit);
         rate.sleep();
     }
