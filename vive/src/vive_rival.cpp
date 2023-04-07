@@ -13,6 +13,7 @@
 #include <std_srvs/SetBool.h>
 
 bool status = true; //tracker status 
+bool insurance_mode;
 
 typedef struct vivePose {
     double x, y, z;
@@ -60,7 +61,7 @@ private:
     double alpha;
     double del_vel;
     double tole;
-    double error_tole;
+    double error_tole;//in insurance_mode, error_tole between of tracker & lidar
 
     bool has_tf;
     VIVEPOSE poseV;
@@ -79,6 +80,7 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("del_vel", del_vel);
     ok &= nh_local.getParam("tole", tole);
     ok &= nh_local.getParam("error_tole", error_tole);
+    ok &= nh_local.getParam("insurance_mode", insurance_mode);
 
     vel_sub = nh.subscribe("tracker_vel",10, &Rival::vel_callback, this);
     pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
@@ -88,6 +90,7 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     std::cout << "robot name: " << robot_name << "\n";
     std::cout << "map frame: " << map_frame << "\n";
     std::cout << "tracker: " << tracker_frame << "\n";
+    std::cout << "insurance_mode: " << (bool(insurance_mode) ? "ON" : "OFF" )<<"\n"; 
 
     if (ok) std::cout << node_name_ << " get parameters of the robot sucessed.\n";
     else std::cout << node_name_ << " get parameters of robot failed.\n";
@@ -107,7 +110,9 @@ void Rival::trans_vel(){
     in_vel = transform_SurviveWorldTomap.getBasis() * twist_vel;
 
     out_vel = lowpass_filter(in_vel);
-    status = check_status(in_vel);
+    if(insurance_mode){
+        status = check_status(in_vel);
+    }
 }
 tf::Vector3 Rival::lowpass_filter(tf::Vector3 in_vel){
     for(int i = 0; i<3; i++)
@@ -121,13 +126,16 @@ tf::Vector3 Rival::lowpass_filter(tf::Vector3 in_vel){
     return out_vel;
 }
 bool Rival::check_status(tf::Vector3 in_vel){
-    double error;
-    error = sqrt(pow(abs(in_vel[0]-last_out_vel[0]),2) + pow(abs(in_vel[1]-last_out_vel[1]), 2));
+    std_msgs::Float64 error;
+    error.data = sqrt(pow(abs(in_vel[0]-last_out_vel[0]),2) + pow(abs(in_vel[1]-last_out_vel[1]), 2));
     error_pub.publish(error);
-    // if(error >= error_tole)
-    //     return false;
-    // else
-    //     return true; 
+    if(error.data >= error_tole){
+        ROS_WARN_STREAM("tracker failure !! change to lidar.");
+        return false;
+    }    
+    else{
+        return true;
+    }  
     return true;
 }
 
@@ -159,11 +167,10 @@ void Rival::publish_vive_pose(bool status) {
     }
     else{
         ROS_WARN_STREAM("tracker failure!!\nchange to lidar info"); 
-        
     }
-        pose.header.stamp = ros::Time::now();
-        pose.header.frame_id = tracker_frame;
-        pose_pub.publish(pose);
+    pose.header.stamp = ros::Time::now();
+    pose.header.frame_id = tracker_frame;
+    pose_pub.publish(pose);
 
 }
 void Rival::print_pose(int unit_) {
