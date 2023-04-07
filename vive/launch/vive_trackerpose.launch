@@ -7,7 +7,7 @@
             <rosparam file="$(find vive)/param/vive_trackerpose.yaml" command="load" />
             <param name="robot_name" type="string" value="robot1"/> <!-- need to check -->
             <param name="map" type="string" value="survive1_map"/>  <!-- need to check -->
-            <param name="tracker" type="string" value="trackerC"/>  <!-- need to check -->
+            <param name="tracker" type="string" value="trackerA"/>  <!-- need to check -->
             <!-- <param name="covariance0" type="double" value="1.0"/>
             <param name="covariance7" type="double" value="1.0"/>
             <param name="covariance14" type="double" value="1.0"/>
@@ -20,7 +20,7 @@
         <node name="vive_trackerpose" pkg="vive" type="vive_trackerpose" output="screen">
             <rosparam file="$(find vive)/param/vive_trackerpose.yaml" command="load" />
             <param name="robot_name" type="string" value="robot2"/> <!-- need to check -->
-            <param name="map" type="string" value="survive1_map"/>  <!-- need to check -->
+            <param name="map" type="string" value="survive2_map"/>  <!-- need to check -->
             <param name="tracker" type="string" value="trackerB"/>  <!-- need to check -->
             <!-- <param name="covariance0" type="double" value="1.0"/>
             <param name="covariance7" type="double" value="1.0"/>

@@ -19,6 +19,6 @@ LH2_Z: 0.727947
 LH2_x: 1.122016
 LH2_y: -0.043286
 LH2_z: -3.476003
-freq: 100
+freq: 20
 tracker_name: tracker_C
 unit: 100
