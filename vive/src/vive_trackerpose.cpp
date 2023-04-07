@@ -7,6 +7,7 @@
 #include <tf/transform_listener.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <std_srvs/SetBool.h>
 
 
 typedef struct vivePose {
@@ -65,13 +66,15 @@ Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     }
 }
 void Robot::lookup_transform_from_map() {
-    has_tf = listener.canTransform(map_frame, tracker_frame, ros::Time(0));
+    // has_tf = listener.canTransform(map_frame, tracker_frame, ros::Time(0));
+    has_tf = true;
     try {
         listener.lookupTransform(map_frame, tracker_frame, ros::Time(0), transform_from_map);
     }
     catch (tf::TransformException& ex) {
-        printf("%s", ex.what());
-        std::cout << "connot transform from " << map_frame << " to " << tracker_frame << std::endl;
+        // printf("%s", ex.what());
+        has_tf = false;
+        std::cout << "connot lookup transform from " << map_frame << " to " << tracker_frame << std::endl;
     }
 }
 void Robot::publish_vive_pose() {
@@ -93,18 +96,21 @@ void Robot::publish_vive_pose() {
         pose.pose.covariance[35] = covariance[35];
         pose_pub.publish(pose);
     }
+    else {
+        std::cout << robot_name << " did not publish." << std::endl;
+    }
 }
 void Robot::print_pose(int unit_) {
     poseV.x = transform_from_map.getOrigin().getX() * unit_;
     poseV.y = transform_from_map.getOrigin().getY() * unit_;
     poseV.z = transform_from_map.getOrigin().getZ() * unit_;
-    poseV.W = transform_from_map.getRotation().getW() * unit_;
-    poseV.X = transform_from_map.getRotation().getX() * unit_;
-    poseV.Y = transform_from_map.getRotation().getY() * unit_;
-    poseV.Z = transform_from_map.getRotation().getZ() * unit_;
+    poseV.W = transform_from_map.getRotation().getW();
+    poseV.X = transform_from_map.getRotation().getX();
+    poseV.Y = transform_from_map.getRotation().getY();
+    poseV.Z = transform_from_map.getRotation().getZ();
     if (has_tf) {
-        std::cout << robot_name << "/" << "trackerpose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z)" << std::endl;
-        std::cout << poseV.x << " " << poseV.y << " " << poseV.z << " "
+        std::cout << robot_name << "/" << "trackerpose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z) "
+            << poseV.x << " " << poseV.y << " " << poseV.z << " "
             << poseV.W << " " << poseV.X << " " << poseV.Y << " " << poseV.Z << std::endl;
     }
     else {
@@ -116,6 +122,7 @@ int freq = 20;
 int unit = 1;
 std::string name_space;
 std::string node_name;
+bool world_is_running = true;
 
 void initialize(ros::NodeHandle nh_) {
     bool ok = true;
@@ -138,6 +145,11 @@ void deleteParam() {
     system(deleteparam.c_str());
     std::cout << "node: " << node_name << " parameters deleted" << std::endl;
 }
+bool run_srv_func(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) {
+    world_is_running = req.data;
+    res.success = true;
+    return true;
+}
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "vive_trackerpose");
@@ -145,15 +157,17 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh_("~");   //path: this node
     initialize(nh_);
     ros::Rate rate(freq);
+    ros::ServiceServer run_srv = nh.advertiseService("survive_world_is_running", run_srv_func);
 
     Robot robot(nh, nh_);
 
     while (ros::ok()) {
-
-        robot.lookup_transform_from_map();
-        robot.publish_vive_pose();
-        robot.print_pose(unit);
-
+        if (world_is_running) {
+            robot.lookup_transform_from_map();
+            robot.publish_vive_pose();
+            robot.print_pose(unit);
+        }
+        ros::spinOnce();
         rate.sleep();
     }
 
