@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   tf
   geometry_msgs
-  obstacle_detector
+  # obstacle_detector
   # pkg_check_modules(YAMLCPP yaml-cpp REQUIRED)
   # if(YAMLCPP_VERSION VERSION_GREATER "0.5.0")
   #   add_definitions(-DHAVE_YAMLCPP_GT_0_5_0)
@@ -224,6 +224,9 @@ target_link_libraries(vive_trackerpose ${LIBS}  ${catkin_LIBRARIES} )
 
 add_executable(vive_rival src/vive_rival.cpp)
 target_link_libraries(vive_rival ${LIBS}  ${catkin_LIBRARIES} )
+
+add_executable(rival_localization src/rival_localization.cpp)
+target_link_libraries(rival_localization ${LIBS}  ${catkin_LIBRARIES} )
 
 # add_executable(vive_localization_plus src/vive_localization_plus.cpp)
 # add_dependencies(vive_localization_plus ${catkin_EXPORTED_TARGETS})
