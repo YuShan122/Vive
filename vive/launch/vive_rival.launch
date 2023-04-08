@@ -1,6 +1,6 @@
 <launch>
 
-    <include file="$(find vive)/launch/vive_world.launch"/>
+    <!-- <include file="$(find vive)/launch/vive_world.launch"/> -->
 
     <arg name="rival1_active" default="true"/>
     <arg name="rival2_active" default="false"/>

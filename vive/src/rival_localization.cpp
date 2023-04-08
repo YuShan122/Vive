@@ -21,7 +21,8 @@ typedef struct ODOMINfO{
 OdomInfo rival1_odom,rival2_odom; 
 std::vector<OdomInfo> Lidar_vec;
 double freq;
-bool fusion_switch;
+bool fusion_active;
+bool rival1_active, rival2_active;
 
 class RivalMulti{
     public:
@@ -55,6 +56,7 @@ class RivalMulti{
         double boundary_down_x;
         double boundary_upper_y;
         double boundary_down_y;
+        double time_out;
 };
 
 RivalMulti::RivalMulti(ros::NodeHandle nh_g, ros::NodeHandle nh_p){
@@ -73,13 +75,16 @@ RivalMulti::RivalMulti(ros::NodeHandle nh_g, ros::NodeHandle nh_p){
     ok &= nh_local.getParam("boundary_down_x", boundary_down_x);
     ok &= nh_local.getParam("boundary_upper_y", boundary_upper_y);
     ok &= nh_local.getParam("boundary_down_y", boundary_down_y);
-    ok &= nh_local.getParam("fusion_switch", fusion_switch);
+    ok &= nh_local.getParam("fusion_active", fusion_active);
+    ok &= nh_local.getParam("rival1_active", rival1_active);
+    ok &= nh_local.getParam("rival2_active", rival2_active);
+    ok &= nh_local.getParam("time_out", time_out);
 
     rival1_sub = nh.subscribe("/rival1/odom/tracker",10, &RivalMulti::Rival1_callback, this);
     rival2_sub = nh.subscribe("/rival2/odom/tracker",10, &RivalMulti::Rival2_callback, this);
     lidar_sub = nh.subscribe(lidar_topic_name, 10, &RivalMulti::Lidar_callback, this);
-    rival1_pub = nh.advertise<nav_msgs::Odometry>(rival1_topic_name, 10);
-    rival2_pub = nh.advertise<nav_msgs::Odometry>(rival2_topic_name, 10);
+    if(rival1_active) rival1_pub = nh.advertise<nav_msgs::Odometry>(rival1_topic_name, 10);
+    if(rival2_active) rival2_pub = nh.advertise<nav_msgs::Odometry>(rival2_topic_name, 10);
 
     std::cout << node_name << " freq : " << freq << "\n";
     if (ok) std::cout << node_name << " get parameters of the robot sucessed.\n";
@@ -141,14 +146,19 @@ void RivalMulti::publish_rival_odom(std::string name, OdomInfo odom_data){
     rival_odom.twist.twist.linear.x = odom_data.Vx;
     rival_odom.twist.twist.linear.y = odom_data.Vy;
     time_delay = rival_odom.header.stamp.toSec() - odom_data.header.stamp.toSec();
-    if(strcmp(name.c_str(), "rival1") == 0){
-        rival1_pub.publish(rival_odom);
-        printf("%s publish time delay : %f\n", name.c_str(), time_delay);
+    if(time_delay<=time_out){
+        if(strcmp(name.c_str(), "rival1") == 0){
+            rival1_pub.publish(rival_odom);
+            printf("successful publish rival1 odom\n");
+            printf("%s publish time delay : %f\n", name.c_str(), time_delay);
+        }
+        else if(strcmp(name.c_str(), "rival2") == 0){
+            rival2_pub.publish(rival_odom);
+            printf("successful publish rival2 odom\n");
+            printf("%s publish time delay : %f\n", name.c_str(), time_delay);
+        }
     }
-    else if(strcmp(name.c_str(), "rival2") == 0){
-        rival2_pub.publish(rival_odom);
-        printf("%s publish time delay : %f\n", name.c_str(), time_delay);
-    }
+    else printf("%s odom time out : %f\n", name.c_str(), time_delay);
 }
 
 bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vector<OdomInfo>& Lidar_vec){
@@ -209,26 +219,34 @@ int main(int argc, char** argv) {
     bool distribute_ok;
     while (ros::ok()) {
         ros::spinOnce();
-        if(fusion_switch){
-            rival1_ok = rivalmulti.Rival_match("rival1", rival1_odom, Lidar_vec);
-            rival2_ok = rivalmulti.Rival_match("rival2", rival2_odom, Lidar_vec);
-            if(rival1_ok){
+        if(fusion_active){
+
+            if(rival1_active) rival1_ok = rivalmulti.Rival_match("rival1", rival1_odom, Lidar_vec);
+            else rival1_ok = true;
+
+            if(rival2_active) rival2_ok = rivalmulti.Rival_match("rival2", rival2_odom, Lidar_vec);
+            else rival2_ok = true;
+
+            if(rival1_ok && rival1_active){
                 rivalmulti.publish_rival_odom("rival1", rival1_odom);
-                printf("successful publish rival1 odom\n");
             }
-            if(rival2_ok){
+            if(rival2_ok && rival1_active){
                 rivalmulti.publish_rival_odom("rival2", rival2_odom);
-                printf("successful publish rival2 odom\n");
             }
+
             distribute_ok = rivalmulti.distribute_rival_odom(rival1_ok, rival2_ok, Lidar_vec);
             if(!distribute_ok) printf("distribute failure\n");
         }
         else{
             printf("Just use the tracker data\n");
-            rivalmulti.publish_rival_odom("rival1", rival1_odom);
-            printf("successful publish rival1 odom\n");
-            rivalmulti.publish_rival_odom("rival2", rival1_odom);
-            printf("successful publish rival2 odom\n");
+            if(rival1_active){
+                rivalmulti.publish_rival_odom("rival1", rival1_odom);
+                printf("successful publish rival1 odom\n");
+            }
+            if(rival2_active){
+                rivalmulti.publish_rival_odom("rival2", rival1_odom);
+                printf("successful publish rival2 odom\n");
+            }
         }
         rate.sleep();
     }

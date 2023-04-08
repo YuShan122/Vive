@@ -1,11 +1,14 @@
 <launch>
     
-    <node name="vive_rival" pkg="vive" type="vive_rival" output="screen">
-        <param name="fusion_switch" type="bool" value="true"/> <!-- fusion lidar & tracker rival pose-->
+    <node name="rival_localization" pkg="vive" type="rival_localization" output="screen">
+        <param name="fusion_active" type="bool" value="false"/> <!-- fusion lidar & tracker rival pose-->
+        <param name="rival1_active" type="bool" value="true"/>
+        <param name="rival2_active" type="bool" value="false"/>
         <param name="freq" type="double" value="20"/>
         <param name="rival1_topic_name" type="string" value="/rival1/odom"/>
         <param name="rival2_topic_name" type="string" value="/rival2/odom"/>
         <param name="lidar_topic_name" type="string" value="/lidar"/>
+        <param name="time_out" type="double" value="1"/>
         <param name="match_tole" type="double" value="0.1"/>     <!-- unit is meter -->
         <param name="boundary_upper_x" type="double" value="3"/> <!-- unit is meter -->
         <param name="boundary_down_x" type="double" value="0"/>  <!-- unit is meter -->
