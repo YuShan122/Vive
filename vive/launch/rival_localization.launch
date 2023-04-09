@@ -7,7 +7,7 @@
         <param name="freq" type="double" value="20"/>
         <param name="rival1_topic_name" type="string" value="/rival1/odom"/>
         <param name="rival2_topic_name" type="string" value="/rival2/odom"/>
-        <param name="lidar_topic_name" type="string" value="/lidar"/>
+        <param name="lidar_topic_name" type="string" value="/robot1/obstacle_array"/>
         <param name="time_out" type="double" value="1"/>
         <param name="match_tole" type="double" value="0.1"/>     <!-- unit is meter -->
         <param name="boundary_upper_x" type="double" value="3"/> <!-- unit is meter -->

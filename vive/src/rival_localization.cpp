@@ -10,6 +10,7 @@
 #include <ros/ros.h>
 #include <ros/time.h>
 #include <tf/tf.h>
+#include <obstacle_detector/Obstacles.h>
 
 
 typedef struct ODOMINfO{
@@ -29,7 +30,7 @@ class RivalMulti{
         RivalMulti(ros::NodeHandle nh_g, ros::NodeHandle nh_p);
         void Rival1_callback(const nav_msgs::Odometry::ConstPtr &rival1_msg);
         void Rival2_callback(const nav_msgs::Odometry::ConstPtr &rival2_msg);
-        void Lidar_callback(const  nav_msgs::Odometry::ConstPtr &lidar_msg);
+        void Lidar_callback(const  obstacle_detector::Obstacles::ConstPtr &lidar_msg);
 
         bool Rival_match(std::string name, OdomInfo rival_data, std::vector<OdomInfo>& Lidar_vec);
         double distance(double a_x, double a_y, double b_x, double b_y);
@@ -107,11 +108,18 @@ void RivalMulti::Rival2_callback(const nav_msgs::Odometry::ConstPtr &rival2_msg)
     rival2_odom.Vy = rival2_msg->twist.twist.linear.y;
 }
 
-void RivalMulti::Lidar_callback(const nav_msgs::Odometry::ConstPtr &lidar_msg){
+void RivalMulti::Lidar_callback(const obstacle_detector::Obstacles::ConstPtr &lidar_msg){
     Lidar_vec.clear();
     OdomInfo lidar_data;
     // write the lidar_msg in lidar_data
-    Lidar_vec.push_back(lidar_data);
+    lidar_data.header.stamp = lidar_msg->header.stamp;
+    for(auto item :lidar_msg->circles){
+        lidar_data.x = item.center.x;
+        lidar_data.y = item.center.y;
+        lidar_data.Vx = item.velocity.x;
+        lidar_data.Vy = item.velocity.y;
+        Lidar_vec.push_back(lidar_data);
+    }
 }
 
 bool RivalMulti::Rival_match(std::string name, OdomInfo rival_data, std::vector<OdomInfo>& Lidar_vec){
@@ -158,7 +166,7 @@ void RivalMulti::publish_rival_odom(std::string name, OdomInfo odom_data){
             printf("%s publish time delay : %f\n", name.c_str(), time_delay);
         }
     }
-    else printf("%s odom time out : %f\n", name.c_str(), time_delay);
+    else printf("%s odom is time out : %f\n", name.c_str(), time_delay);
 }
 
 bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vector<OdomInfo>& Lidar_vec){
@@ -176,6 +184,14 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
                 it = Lidar_vec.erase(it);
                 rival1_ok = true;
             }
+            if(it == Lidar_vec.end()--){
+                boundary_ok = boundary(rival1_odom.x,rival1_odom.y);
+                if(boundary_ok){
+                    publish_rival_odom("rival1",rival1_odom);
+                    printf("rival1 tracker isn't match lidar, but publish tracker\n");
+                    rival1_ok = true;
+                }
+            }
         }
     }
     if(!rival2_ok){
@@ -187,9 +203,19 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
                 printf("Rival2 use lidar info to publish\n");
                 it = Lidar_vec.erase(it);
                 rival2_ok = true;
+                break;
+            }
+            if(it == Lidar_vec.end()--){
+                boundary_ok = boundary(rival2_odom.x,rival2_odom.y);
+                if(boundary_ok){
+                    publish_rival_odom("rival2",rival2_odom);
+                    printf("rival2 tracker isn't match lidar, but publish tracker\n");
+                    rival2_ok = true;
+                }
             }
         }
     }
+
     if(rival1_ok && rival2_ok){
         return true;
     }
