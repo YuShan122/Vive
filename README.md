@@ -23,11 +23,10 @@ make
 ## complie
 ```bash=1
 cd ~/catkin_workspace
+catkin_make -DCATKIN_WHITELIST_PACKAGES="obstacle_detector"
 catkin_make -DCATKIN_WHITELIST_PACKAGES="vive"
-# some error occured. could not find a package configuration file provided by "obstacle_detector".
-# open Eurobot-Localization/vive/CMakeLists.txt, command out: (1)line 20: obstacle_detactor, (2)line 232: rival_localization
 ```
-將libsurvive內找不到路徑的handerfile改成絕對路徑（已經被改好了！）
+將libsurvive內找不到路徑的handerfile改成絕對路徑（已經被改好了！如果編譯時沒有出現錯誤就不用改）
 應該會有三個以上的檔案要改：`linmath.h、cn_matrix.h、cn_matrix.hpp`
 > `../libs/cnkalman/libs/cnmatrix/include/cnmatrix/cn_matrix.h`
 
