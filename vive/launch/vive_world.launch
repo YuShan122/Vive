@@ -1,7 +1,7 @@
 <launch>
-    <arg name="robot1_active" default="false"/>
+    <arg name="robot1_active" default="true"/>
     <arg name="robot2_active" default="false"/>
-    <arg name="rival1_active" default="true"/>
+    <arg name="rival1_active" default="false"/>
     <arg name="rival2_active" default="false"/>
 
     <group ns="survive1" if="$(arg robot1_active)">

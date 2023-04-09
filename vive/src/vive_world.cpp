@@ -91,6 +91,7 @@ public:
     tf::Quaternion get_q_to_world_devide_by(int dvs, bool ok);
     void set_tf_to_world(tf::StampedTransform tf_, VIVEPOSE p_);
     void send_tf_to_world(std::string swf_);
+    bool has_tf_to_world();
 private:
     std::string frame;
     std::string lh_frame;
@@ -100,11 +101,9 @@ private:
     VIVEPOSE p_from_lh;
     VIVEPOSE p_to_world;
     tf::TransformBroadcaster br;
-    bool has_tf_to_world;
+    bool has_tf_to_world_;
 };
-ViveMap::ViveMap(std::string f_) {
-    frame = f_;
-}
+ViveMap::ViveMap(std::string f_) { frame = f_; }
 ViveMap::ViveMap(std::string spf_, int od_) {
     order = od_;
     frame = spf_ + "map" + std::to_string(order);
@@ -128,16 +127,15 @@ void ViveMap::set_tf_from_lh(ros::NodeHandle nh_) {
     tf_from_lh.setOrigin(tf::Vector3(p_from_lh.x, p_from_lh.y, p_from_lh.z));
     tf_from_lh.setRotation(tf::Quaternion(p_from_lh.X, p_from_lh.Y, p_from_lh.Z, p_from_lh.W));
 }
-void ViveMap::send_tf_from_lh() {
-    br.sendTransform(tf::StampedTransform(tf_from_lh, ros::Time::now(), lh_frame, frame));
-}
+void ViveMap::send_tf_from_lh() { br.sendTransform(tf::StampedTransform(tf_from_lh, ros::Time::now(), lh_frame, frame)); }
 void ViveMap::lookup_tf_to_world(std::string wf_, tf::TransformListener& listener) {
-    has_tf_to_world = listener.canTransform(frame, wf_, ros::Time(0));
+    has_tf_to_world_ = true;
     try {
         listener.lookupTransform(frame, wf_, ros::Time(0), tf_to_world);
     }
     catch (tf::TransformException& ex) {
         printf("%s\n", ex.what());
+        has_tf_to_world_ = false;
     }
     p_to_world.x = tf_to_world.getOrigin().getX();
     p_to_world.y = tf_to_world.getOrigin().getY();
@@ -174,9 +172,8 @@ void ViveMap::set_tf_to_world(tf::StampedTransform tf_, VIVEPOSE p_) {
     tf_to_world = tf_;
     p_to_world = p_;
 }
-void ViveMap::send_tf_to_world(std::string wf_) {
-    br.sendTransform(tf::StampedTransform(tf_to_world, ros::Time::now(), frame, wf_));
-}
+void ViveMap::send_tf_to_world(std::string wf_) { br.sendTransform(tf::StampedTransform(tf_to_world, ros::Time::now(), frame, wf_)); }
+bool ViveMap::has_tf_to_world() { return has_tf_to_world_; }
 
 /*globle variables*/
 std::string survive_prefix;
@@ -247,12 +244,15 @@ ViveMap find_avg_map(ViveMap map0, ViveMap map1, ViveMap map2, bool* send_) {
     double d01 = find_distance(map0, map1);
     double d12 = find_distance(map1, map2);
     double d20 = find_distance(map2, map0);
-    if (d01 > max_distance_bt_maps && d20 > max_distance_bt_maps) { ok0 = false; divisor--; }
-    if (d12 > max_distance_bt_maps && d01 > max_distance_bt_maps) { ok1 = false; divisor--; }
-    if (d20 > max_distance_bt_maps && d12 > max_distance_bt_maps) { ok2 = false; divisor--; }
+    if ((d01 > max_distance_bt_maps && d20 > max_distance_bt_maps) || !map0.has_tf_to_world()) { ok0 = false; divisor--; }
+    if ((d12 > max_distance_bt_maps && d01 > max_distance_bt_maps) || !map1.has_tf_to_world()) { ok1 = false; divisor--; }
+    if ((d20 > max_distance_bt_maps && d12 > max_distance_bt_maps) || !map2.has_tf_to_world()) { ok2 = false; divisor--; }
+    std::cout << "(ok0 ok1 ok2 divisor d01 d12 d20): "
+        << ok0 << " " << ok1 << " " << ok2 << " " << divisor << " "
+        << d01 << " " << d12 << " " << d20 << std::endl;
 
     if (divisor == 0) {
-        std::cout << world_frame << ": three maps do not match." << std::endl;
+        std::cout << world_frame << ": three maps do not match. ";
         std::cout << "distances between maps(d01 d12 d20): "
             << d01 << " " << d12 << " " << d20 << std::endl;
         divisor = 1;

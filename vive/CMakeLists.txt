@@ -216,6 +216,9 @@ target_link_libraries(vive_calibrate ${LIBS}  ${catkin_LIBRARIES} )
 # add_executable(vive_localization_multi src/vive_localization_multi.cpp)
 # target_link_libraries(vive_localization_multi ${LIBS}  ${catkin_LIBRARIES} )
 
+add_executable(fake_ekf src/fake_ekf.cpp)
+target_link_libraries(fake_ekf ${LIBS}  ${catkin_LIBRARIES} )
+
 add_executable(vive_world src/vive_world.cpp)
 target_link_libraries(vive_world ${LIBS}  ${catkin_LIBRARIES} )
 
