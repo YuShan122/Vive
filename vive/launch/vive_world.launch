@@ -1,27 +1,27 @@
 <launch>
     <arg name="robot1_active" default="false"/>
-    <arg name="robot2_active" default="false"/>
-    <arg name="rival1_active" default="true"/>
+    <arg name="robot2_active" default="true"/>
+    <arg name="rival1_active" default="false"/>
     <arg name="rival2_active" default="false"/>
 
-    <group ns="survive1" if="$(arg robot1_active)">
+    <group ns="robot1" if="$(arg robot1_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
             <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
             <param name ="tracker" type="string" value="trackerA"/>
             <param name ="survive_prefix" type="string" value="survive1_"/>
-            <param name ="vel_topic_name" type="string" value="/robot1/tracker_vel"/>
-            <param name ="run_service_name" type="string" value="/robot1/survive_world_is_running"/>
+            <param name ="vel_topic_name" type="string" value="tracker_vel"/>
+            <param name ="run_service_name" type="string" value="survive_world_is_running"/>
             <param name ="max_distance_bt_maps" type="double" value="0.1"/>
         </node>
     </group>
 
-    <group ns="survive2" if="$(arg robot2_active)">
+    <group ns="robot2" if="$(arg robot2_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
             <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
             <param name ="tracker" type="string" value="trackerB"/>
             <param name ="survive_prefix" type="string" value="survive2_"/>
-            <param name ="vel_topic_name" type="string" value="/robot2/tracker_vel"/>
-            <param name ="run_service_name" type="string" value="/robot2/survive_world_is_running"/>
+            <param name ="vel_topic_name" type="string" value="tracker_vel"/>
+            <param name ="run_service_name" type="string" value="survive_world_is_running"/>
             <param name ="max_distance_bt_maps" type="double" value="0.1"/>
         </node>
     </group>
