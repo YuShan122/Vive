@@ -34,7 +34,7 @@ class RivalMulti{
 
         bool Rival_match(std::string name, OdomInfo rival_data, std::vector<OdomInfo>& Lidar_vec);
         double distance(double a_x, double a_y, double b_x, double b_y);
-        void publish_rival_odom(std::string name, OdomInfo odom_data);
+        bool publish_rival_odom(std::string name, OdomInfo odom_data);
         bool distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vector<OdomInfo>& Lidar_vec);
         bool boundary(double x, double y);
 
@@ -144,7 +144,7 @@ double RivalMulti::distance(double a_x, double a_y, double b_x, double b_y){
     return sqrt( pow((a_x-b_x),2) + pow((a_y-b_y),2) );
 }
 
-void RivalMulti::publish_rival_odom(std::string name, OdomInfo odom_data){
+bool RivalMulti::publish_rival_odom(std::string name, OdomInfo odom_data){
     nav_msgs::Odometry rival_odom;
     double time_delay;
 
@@ -157,16 +157,21 @@ void RivalMulti::publish_rival_odom(std::string name, OdomInfo odom_data){
     if(time_delay<=time_out){
         if(strcmp(name.c_str(), "rival1") == 0){
             rival1_pub.publish(rival_odom);
-            printf("successful publish rival1 odom\n");
+            // printf("successful publish rival1 odom\n");
             printf("%s publish time delay : %f\n", name.c_str(), time_delay);
+            return true;
         }
         else if(strcmp(name.c_str(), "rival2") == 0){
             rival2_pub.publish(rival_odom);
-            printf("successful publish rival2 odom\n");
+            // printf("successful publish rival2 odom\n");
             printf("%s publish time delay : %f\n", name.c_str(), time_delay);
+            return true;
         }
     }
-    else printf("%s odom is time out : %f\n", name.c_str(), time_delay);
+    else {
+        printf("%s odom is time out : %f\n", name.c_str(), time_delay);
+        return false;
+    }
 }
 
 bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vector<OdomInfo>& Lidar_vec){
@@ -179,18 +184,31 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
         for(it = Lidar_vec.begin(); it!=Lidar_vec.end(); it++){
             boundary_ok = boundary(it->x, it->y);
             if(boundary_ok){
-                publish_rival_odom("rival1", *it);
-                printf("Rival1 use lidar info to publish\n");
+                if(publish_rival_odom("rival1", *it))
+                    printf("1-0-1-Rival1 use lidar info to publish\n");
                 it = Lidar_vec.erase(it);
                 rival1_ok = true;
+                break;
             }
-            if(it == Lidar_vec.end()--){
+            if(Lidar_vec.size() == 1){
                 boundary_ok = boundary(rival1_odom.x,rival1_odom.y);
                 if(boundary_ok){
-                    publish_rival_odom("rival1",rival1_odom);
-                    printf("rival1 tracker isn't match lidar, but publish tracker\n");
+                    if(publish_rival_odom("rival1",rival1_odom))
+                        printf("1-1-0-rival1 tracker isn't match lidar, but publish tracker\n");
                     rival1_ok = true;
+                    break;
                 }
+                break;
+            }
+            else if(it == Lidar_vec.end()--){
+                boundary_ok = boundary(rival1_odom.x,rival1_odom.y);
+                if(boundary_ok){
+                    if(publish_rival_odom("rival1",rival1_odom))
+                        printf("1-1-0-rival2 tracker isn't match lidar, but publish tracker\n");
+                    rival1_ok = true;
+                    break;
+                }
+                break;
             }
         }
     }
@@ -199,19 +217,31 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
         for(it = Lidar_vec.begin(); it!=Lidar_vec.end(); it++){
             boundary_ok = boundary(it->x, it->y);
             if(boundary_ok){
-                publish_rival_odom("rival2", *it);
-                printf("Rival2 use lidar info to publish\n");
+                if(publish_rival_odom("rival2", *it))
+                    printf("2-0-1-Rival2 use lidar info to publish\n");
                 it = Lidar_vec.erase(it);
                 rival2_ok = true;
                 break;
             }
-            if(it == Lidar_vec.end()--){
+            if(Lidar_vec.size() == 1){
                 boundary_ok = boundary(rival2_odom.x,rival2_odom.y);
                 if(boundary_ok){
-                    publish_rival_odom("rival2",rival2_odom);
-                    printf("rival2 tracker isn't match lidar, but publish tracker\n");
+                    if(publish_rival_odom("rival2",rival2_odom))
+                        printf("2-1-0-rival2 tracker isn't match lidar, but publish tracker\n");
                     rival2_ok = true;
+                    break;
                 }
+                break;
+            }
+            else if(it == Lidar_vec.end()--){
+                boundary_ok = boundary(rival2_odom.x,rival2_odom.y);
+                if(boundary_ok){
+                    if(publish_rival_odom("rival2",rival2_odom))
+                        printf("2-1-0-rival2 tracker isn't match lidar, but publish tracker\n");
+                    rival2_ok = true;
+                    break;
+                }
+                break;
             }
         }
     }
@@ -220,6 +250,10 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
         return true;
     }
     else{
+        if(rival1_active)
+            rival1_ok ? printf("rival1 ok\n"):printf("1-0-0-rival1 failure!\n");
+        if(rival2_active)
+            rival2_ok ? printf("rival2 ok\n"):printf("2-0-0-rival2 failure!\n");
         return false;
     }
 }
@@ -254,10 +288,12 @@ int main(int argc, char** argv) {
             else rival2_ok = true;
 
             if(rival1_ok && rival1_active){
-                rivalmulti.publish_rival_odom("rival1", rival1_odom);
+                if(rivalmulti.publish_rival_odom("rival1", rival1_odom))
+                    printf("1-1-1-rival1 tracker match Lidar\n");
             }
-            if(rival2_ok && rival1_active){
-                rivalmulti.publish_rival_odom("rival2", rival2_odom);
+            if(rival2_ok && rival2_active){
+                if(rivalmulti.publish_rival_odom("rival2", rival2_odom))
+                    printf("2-1-1-rival1 tracker match Lidar\n");
             }
 
             distribute_ok = rivalmulti.distribute_rival_odom(rival1_ok, rival2_ok, Lidar_vec);
@@ -266,12 +302,12 @@ int main(int argc, char** argv) {
         else{
             printf("Just use the tracker data\n");
             if(rival1_active){
-                rivalmulti.publish_rival_odom("rival1", rival1_odom);
-                printf("successful publish rival1 odom\n");
+                if(rivalmulti.publish_rival_odom("rival1", rival1_odom))
+                    printf("1-1-0-successful publish rival1 odom\n");
             }
             if(rival2_active){
-                rivalmulti.publish_rival_odom("rival2", rival1_odom);
-                printf("successful publish rival2 odom\n");
+                if(rivalmulti.publish_rival_odom("rival2", rival1_odom))
+                    printf("2-1-0-successful publish rival2 odom\n");
             }
         }
         rate.sleep();
