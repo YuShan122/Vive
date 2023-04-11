@@ -176,10 +176,18 @@ bool RivalMulti::publish_rival_odom(std::string name, OdomInfo odom_data){
 
 bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vector<OdomInfo>& Lidar_vec){
     if(rival1_ok && rival2_ok){
-        return 0;
+        return true;
     }  
     bool boundary_ok = false;
     if(!rival1_ok){
+        if(Lidar_vec.empty()){
+            boundary_ok = boundary(rival1_odom.x,rival1_odom.y);
+            if(boundary_ok){
+                if(publish_rival_odom("rival1",rival1_odom))
+                    printf("1-1-0-rival1 tracker isn't match lidar, but publish tracker\n");
+                rival1_ok = true;
+            }
+        }
         std::vector<OdomInfo>::iterator it;
         for(it = Lidar_vec.begin(); it!=Lidar_vec.end(); it++){
             boundary_ok = boundary(it->x, it->y);
@@ -190,7 +198,8 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
                 rival1_ok = true;
                 break;
             }
-            if(Lidar_vec.size() == 1){
+            if(Lidar_vec.size()==1 || it == Lidar_vec.end()-- && !rival1_ok){ 
+                printf("check point \n");
                 boundary_ok = boundary(rival1_odom.x,rival1_odom.y);
                 if(boundary_ok){
                     if(publish_rival_odom("rival1",rival1_odom))
@@ -200,19 +209,18 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
                 }
                 break;
             }
-            else if(it == Lidar_vec.end()--){
-                boundary_ok = boundary(rival1_odom.x,rival1_odom.y);
-                if(boundary_ok){
-                    if(publish_rival_odom("rival1",rival1_odom))
-                        printf("1-1-0-rival2 tracker isn't match lidar, but publish tracker\n");
-                    rival1_ok = true;
-                    break;
-                }
-                break;
-            }
         }
     }
     if(!rival2_ok){
+        if(Lidar_vec.empty()){
+            boundary_ok = boundary(rival2_odom.x,rival2_odom.y);
+            if(boundary_ok){
+                if(publish_rival_odom("rival2",rival2_odom))
+                    printf("2-1-0-rival2 tracker isn't match lidar, but publish tracker\n");
+                rival2_ok = true;
+            }
+        }
+
         std::vector<OdomInfo>::iterator it;
         for(it = Lidar_vec.begin(); it!=Lidar_vec.end(); it++){
             boundary_ok = boundary(it->x, it->y);
@@ -223,19 +231,9 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
                 rival2_ok = true;
                 break;
             }
-            if(Lidar_vec.size() == 1){
+            if(Lidar_vec.size()==1 || it == Lidar_vec.end()-- && !rival1_ok){
                 boundary_ok = boundary(rival2_odom.x,rival2_odom.y);
-                if(boundary_ok){
-                    if(publish_rival_odom("rival2",rival2_odom))
-                        printf("2-1-0-rival2 tracker isn't match lidar, but publish tracker\n");
-                    rival2_ok = true;
-                    break;
-                }
-                break;
-            }
-            else if(it == Lidar_vec.end()--){
-                boundary_ok = boundary(rival2_odom.x,rival2_odom.y);
-                if(boundary_ok){
+                if(true){
                     if(publish_rival_odom("rival2",rival2_odom))
                         printf("2-1-0-rival2 tracker isn't match lidar, but publish tracker\n");
                     rival2_ok = true;
@@ -245,7 +243,6 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
             }
         }
     }
-
     if(rival1_ok && rival2_ok){
         return true;
     }

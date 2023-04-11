@@ -8,6 +8,8 @@
             <param name="robot_name" type="string" value="robot1"/> <!-- need to check -->
             <param name="map" type="string" value="survive1_map"/>  <!-- need to check -->
             <param name="tracker" type="string" value="trackerA"/>  <!-- need to check -->
+            <param name="ekf_active" type="bool" value="false"/>
+            <param name="tole_with_ekf" type="double" value="0.1"/>
             <!-- <param name="covariance0" type="double" value="1.0"/>
             <param name="covariance7" type="double" value="1.0"/>
             <param name="covariance14" type="double" value="1.0"/>
@@ -15,6 +17,18 @@
             <param name="covariance28" type="double" value="1.0"/>
             <param name="covariance35" type="double" value="1.0"/> -->
         </node>
+        <!-- <node name="vive_world" pkg="vive" type="vive_world" output="screen">
+            <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
+            <param name ="tracker" type="string" value="trackerA"/>
+            <param name ="survive_prefix" type="string" value="survive1_"/>
+            <param name ="vel_topic_name" type="string" value="tracker_vel"/>
+            <param name ="run_service_name" type="string" value="survive_world_is_running"/>
+            <param name ="max_distance_bt_maps" type="double" value="0.1"/>
+        </node> -->
+        <!-- <node pkg="vive" type="fake_ekf" name="fake_ekf">
+            <param name="fake_ekf_x" type="double" value="1.48"/>
+            <param name="fake_ekf_y" type="double" value="0.21"/>
+        </node> -->
     </group>
     <group ns="robot2" if="$(arg robot2_active)">
         <node name="vive_trackerpose" pkg="vive" type="vive_trackerpose" output="screen">
@@ -22,6 +36,8 @@
             <param name="robot_name" type="string" value="robot2"/> <!-- need to check -->
             <param name="map" type="string" value="survive2_map"/>  <!-- need to check -->
             <param name="tracker" type="string" value="trackerB"/>  <!-- need to check -->
+            <param name="ekf_active" type="bool" value="false"/>
+            <param name="tole_with_ekf" type="double" value="0.1"/>
             <!-- <param name="covariance0" type="double" value="1.0"/>
             <param name="covariance7" type="double" value="1.0"/>
             <param name="covariance14" type="double" value="1.0"/>
@@ -29,6 +45,18 @@
             <param name="covariance28" type="double" value="1.0"/>
             <param name="covariance35" type="double" value="1.0"/> -->
         </node>
+        <!-- <node name="vive_world" pkg="vive" type="vive_world" output="screen">
+            <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
+            <param name ="tracker" type="string" value="trackerB"/>
+            <param name ="survive_prefix" type="string" value="survive2_"/>
+            <param name ="vel_topic_name" type="string" value="tracker_vel"/>
+            <param name ="run_service_name" type="string" value="survive_world_is_running"/>
+            <param name ="max_distance_bt_maps" type="double" value="0.1"/>
+        </node> -->
+        <!-- <node pkg="vive" type="fake_ekf" name="fake_ekf">
+            <param name="fake_ekf_x" type="double" value="1.48"/>
+            <param name="fake_ekf_y" type="double" value="0.21"/>
+        </node> -->
     </group>
 
 </launch>

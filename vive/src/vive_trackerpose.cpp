@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <string>
 #include <iostream>
+#include <cmath>
 
 #include <ros/ros.h>
 // #include <tf/transform_broadcaster.h>
@@ -22,10 +23,13 @@ public:
     void lookup_transform_from_map();
     void publish_vive_pose();
     void print_pose(int unit_);
+    void ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg_);
+    bool in_boundry(double x, double y);
 private:
     ros::NodeHandle nh;
     ros::NodeHandle nh_;
     ros::Publisher pose_pub;
+    ros::Subscriber ekf_sub;
     geometry_msgs::PoseWithCovarianceStamped pose;
     tf::TransformListener listener;
     tf::StampedTransform transform_from_map;
@@ -34,18 +38,25 @@ private:
     std::string tracker_frame;
     std::string map_frame;
     bool has_tf;
+    bool match_ekf;
     double covariance[36];
     VIVEPOSE poseV;
+    double tole_with_ekf;
+    bool ekf_active;
+    bool in_boundry_;
 };
 Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     nh = nh_g;
     nh_ = nh_l;
-    pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("vive_bonbonbon", 10);   //topic name: [ns of <group>]/lidar_bonbonbon
+    pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("vive_bonbonbon", 10);   //topic name: [ns of <group>]/vive_bonbonbon
+    ekf_sub = nh.subscribe("ekf_pose", 10, &Robot::ekf_sub_callback, this);
     node_name_ = ros::this_node::getName();
     bool ok = true;
     ok &= nh_.getParam("tracker", tracker_frame);       //path: under this node
     ok &= nh_.getParam("map", map_frame);
     ok &= nh_.getParam("robot_name", robot_name);
+    ok &= nh_.getParam("tole_with_ekf", tole_with_ekf);
+    ok &= nh_.getParam("ekf_active", ekf_active);
     ok &= nh_.getParam("covariance0", covariance[0]);
     ok &= nh_.getParam("covariance7", covariance[7]);
     ok &= nh_.getParam("covariance14", covariance[14]);
@@ -64,9 +75,11 @@ Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     else {
         std::cout << "node: " << node_name_ << " get parameters of robot failed." << std::endl;
     }
+
+    match_ekf = true;
+    in_boundry_ = true;
 }
 void Robot::lookup_transform_from_map() {
-    // has_tf = listener.canTransform(map_frame, tracker_frame, ros::Time(0));
     has_tf = true;
     try {
         listener.lookupTransform(map_frame, tracker_frame, ros::Time(0), transform_from_map);
@@ -76,16 +89,24 @@ void Robot::lookup_transform_from_map() {
         has_tf = false;
         std::cout << "connot lookup transform from " << map_frame << " to " << tracker_frame << std::endl;
     }
+    poseV.x = transform_from_map.getOrigin().getX();
+    poseV.y = transform_from_map.getOrigin().getY();
+    poseV.z = transform_from_map.getOrigin().getZ();
+    poseV.W = transform_from_map.getRotation().getW();
+    poseV.X = transform_from_map.getRotation().getX();
+    poseV.Y = transform_from_map.getRotation().getY();
+    poseV.Z = transform_from_map.getRotation().getZ();
+    in_boundry_ = in_boundry(poseV.x, poseV.y);
 }
 void Robot::publish_vive_pose() {
-    if (has_tf) {
-        pose.pose.pose.orientation.w = transform_from_map.getRotation().getW();
-        pose.pose.pose.orientation.x = transform_from_map.getRotation().getX();
-        pose.pose.pose.orientation.y = transform_from_map.getRotation().getY();
-        pose.pose.pose.orientation.z = transform_from_map.getRotation().getZ();
-        pose.pose.pose.position.x = transform_from_map.getOrigin().getX();
-        pose.pose.pose.position.y = transform_from_map.getOrigin().getY();
-        pose.pose.pose.position.z = transform_from_map.getOrigin().getZ();
+    if (has_tf && match_ekf && in_boundry_) {
+        pose.pose.pose.orientation.w = poseV.W;
+        pose.pose.pose.orientation.x = poseV.X;
+        pose.pose.pose.orientation.y = poseV.Y;
+        pose.pose.pose.orientation.z = poseV.Z;
+        pose.pose.pose.position.x = poseV.x;
+        pose.pose.pose.position.y = poseV.y;
+        pose.pose.pose.position.z = poseV.z;
         pose.header.stamp = ros::Time::now();
         pose.header.frame_id = tracker_frame;
         pose.pose.covariance[0] = covariance[0];
@@ -97,25 +118,47 @@ void Robot::publish_vive_pose() {
         pose_pub.publish(pose);
     }
     else {
-        std::cout << robot_name << " did not publish." << std::endl;
+        std::cout << robot_name << " did not publish vive_pose ";
+        if (!has_tf) std::cout << "(has no tf) ";
+        if (!match_ekf) std::cout << "(dose not match ekf) ";
+        if (!in_boundry_) std::cout << "(dose not in boundry) ";
+        std::cout << std::endl;
     }
 }
 void Robot::print_pose(int unit_) {
-    poseV.x = transform_from_map.getOrigin().getX() * unit_;
-    poseV.y = transform_from_map.getOrigin().getY() * unit_;
-    poseV.z = transform_from_map.getOrigin().getZ() * unit_;
-    poseV.W = transform_from_map.getRotation().getW();
-    poseV.X = transform_from_map.getRotation().getX();
-    poseV.Y = transform_from_map.getRotation().getY();
-    poseV.Z = transform_from_map.getRotation().getZ();
     if (has_tf) {
         std::cout << robot_name << "/" << "trackerpose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z) "
-            << poseV.x << " " << poseV.y << " " << poseV.z << " "
+            << poseV.x * unit_ << " " << poseV.y * unit_ << " " << poseV.z * unit_ << " "
             << poseV.W << " " << poseV.X << " " << poseV.Y << " " << poseV.Z << std::endl;
     }
     else {
         std::cout << robot_name << "/" << map_frame << "->" << tracker_frame << " do not have tf." << std::endl;
     }
+}
+void Robot::ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg_) {
+    match_ekf = true;
+    if (ekf_active) {
+        VIVEPOSE ekf_p;
+        ekf_p.x = msg_.pose.pose.position.x;
+        ekf_p.y = msg_.pose.pose.position.y;
+        // ekf_p.z = msg_.pose.pose.position.z;
+        // ekf_p.W = msg_.pose.pose.orientation.w;
+        // ekf_p.X = msg_.pose.pose.orientation.x;
+        // ekf_p.Y = msg_.pose.pose.orientation.y;
+        // ekf_p.Z = msg_.pose.pose.orientation.z;
+
+        double d = (double)sqrt(pow(ekf_p.x - poseV.x, 2) + pow(ekf_p.y - poseV.y, 2));
+        if (d > tole_with_ekf) {
+            match_ekf = false;
+            std::cout << robot_name << ": vivepose dose not match ekf. ";
+            std::cout << "ekf_pose(x y z)= (" << ekf_p.x << " " << ekf_p.y << " " << ekf_p.z << ") " << "d= " << d << std::endl;
+        }
+    }
+}
+bool Robot::in_boundry(double x, double y) {
+    bool in = false;
+    if (x < 3 && x > 0 && y < 2 && y > 0) in = true;
+    return in;
 }
 
 int freq = 20;

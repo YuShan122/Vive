@@ -185,9 +185,9 @@ ${PROJECT_SOURCE_DIR}/../libsurvive/bin/libsurvive.so
 )
 
 
-add_executable(lighthouse_tf_plus src/lighthouse_tf_plus.cpp)
-add_dependencies(lighthouse_tf_plus ${catkin_EXPORTED_TARGETS})
-target_link_libraries(lighthouse_tf_plus  ${catkin_LIBRARIES})
+# add_executable(lighthouse_tf_plus src/lighthouse_tf_plus.cpp)
+# add_dependencies(lighthouse_tf_plus ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(lighthouse_tf_plus  ${catkin_LIBRARIES})
 
 # add_executable(test_array src/test_array.cpp)
 # target_link_libraries(test_array  ${catkin_LIBRARIES})
@@ -217,6 +217,9 @@ target_link_libraries(vive_calibrate ${LIBS}  ${catkin_LIBRARIES} )
 # add_executable(vive_localization_multi src/vive_localization_multi.cpp)
 # target_link_libraries(vive_localization_multi ${LIBS}  ${catkin_LIBRARIES} )
 
+add_executable(fake_ekf src/fake_ekf.cpp)
+target_link_libraries(fake_ekf ${LIBS}  ${catkin_LIBRARIES} )
+
 add_executable(vive_world src/vive_world.cpp)
 target_link_libraries(vive_world ${LIBS}  ${catkin_LIBRARIES} )
 
@@ -228,10 +231,6 @@ target_link_libraries(vive_rival ${LIBS}  ${catkin_LIBRARIES} )
 
 add_executable(rival_localization src/rival_localization.cpp)
 target_link_libraries(rival_localization ${LIBS}  ${catkin_LIBRARIES} )
-
-# add_executable(vive_localization_plus src/vive_localization_plus.cpp)
-# add_dependencies(vive_localization_plus ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(vive_localization_plus ${LIBS}  ${catkin_LIBRARIES} )
 
 add_executable(vive_localization_rival_single src/vive_localization_rival_single.cpp)
 add_dependencies(vive_localization_rival_single ${catkin_EXPORTED_TARGETS})
