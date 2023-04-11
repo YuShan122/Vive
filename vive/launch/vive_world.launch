@@ -1,8 +1,8 @@
 <launch>
     <arg name="robot1_active" default="false"/>
     <arg name="robot2_active" default="false"/>
-    <arg name="rival1_active" default="true"/>
-    <arg name="rival2_active" default="false"/>
+    <arg name="rival1_active" default="false"/>
+    <arg name="rival2_active" default="true"/>
 
     <group ns="robot1" if="$(arg robot1_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
