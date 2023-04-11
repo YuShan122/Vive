@@ -2,8 +2,8 @@
 
     <!-- <include file="$(find vive)/launch/vive_world.launch"/> -->
 
-    <arg name="rival1_active" default="true"/>
-    <arg name="rival2_active" default="false"/>
+    <arg name="rival1_active" default="false"/>
+    <arg name="rival2_active" default="true"/>
     
     <group ns="rival1" if="$(arg rival1_active)">
         <node name="vive_rival" pkg="vive" type="vive_rival" output="screen">
@@ -13,7 +13,7 @@
             <param name="topic_name" type="string" value="/rival1/odom/tracker"/>  <!-- need to check -->
             
             <param name="alpha" type="double" value="0.4"/>
-            <param name="del_vel" type="double" value="0.3"/>
+            <param name="del_vel" type="double" value="0.5"/>
             <param name="tole" type="double" value="0.1"/>
             <!-- <param name="error_tole" type="double" value="0.1"/>  -->
             <!-- <param name="insurance_mode" type="bool" value="true"/> while trun on, fusion the Lidar data to void tracker failure -->
@@ -25,13 +25,13 @@
 
     <group ns="rival2" if="$(arg rival2_active)">
         <node name="vive_rival" pkg="vive" type="vive_rival" output="screen">
-            <param name="tracker" type="string" value="trackerC"/>  <!-- need to check -->
+            <param name="tracker" type="string" value="trackerA"/>  <!-- need to check -->
             <param name="map" type="string" value="survive4_map"/>  <!-- need to check -->
             <param name="world" type="string" value="survive4_world"/>  <!-- need to check -->
             <param name="topic_name" type="string" value="/rival2/odom/tracker"/>  <!-- need to check -->
             
             <param name="alpha" type="double" value="0.4"/>
-            <param name="del_vel" type="double" value="0.2"/>
+            <param name="del_vel" type="double" value="0.5"/>
             <param name="tole" type="double" value="0.1"/>
             <!-- <param name="error_tole" type="double" value="0.1"/> 
             <param name="inserance_mode" type="bool" value="true"/> -->

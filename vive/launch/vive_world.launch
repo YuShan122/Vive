@@ -1,8 +1,8 @@
 <launch>
     <arg name="robot1_active" default="false"/>
-    <arg name="robot2_active" default="true"/>
+    <arg name="robot2_active" default="false"/>
     <arg name="rival1_active" default="false"/>
-    <arg name="rival2_active" default="false"/>
+    <arg name="rival2_active" default="true"/>
 
     <group ns="robot1" if="$(arg robot1_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
@@ -40,7 +40,7 @@
     <group ns="survive4" if="$(arg rival2_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
             <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
-            <param name ="tracker" type="string" value="trackerD"/>
+            <param name ="tracker" type="string" value="trackerA"/>
             <param name ="survive_prefix" type="string" value="survive4_"/>
             <param name ="vel_topic_name" type="string" value="/rival2/tracker_vel"/>
             <param name ="run_service_name" type="string" value="/rival2/survive_world_is_running"/>

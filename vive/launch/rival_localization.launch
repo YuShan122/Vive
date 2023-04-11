@@ -1,8 +1,8 @@
 <launch>
     
     <node name="rival_localization" pkg="vive" type="rival_localization" output="screen">
-        <param name="fusion_active" type="bool" value="false"/> <!-- fusion lidar & tracker rival pose-->
-        <param name="rival1_active" type="bool" value="true"/>
+        <param name="fusion_active" type="bool" value="true"/> <!-- fusion lidar & tracker rival pose-->
+        <param name="rival1_active" type="bool" value="false"/>
         <param name="rival2_active" type="bool" value="true"/>
         <param name="freq" type="double" value="20"/>
         <param name="rival1_topic_name" type="string" value="/rival1/odom"/>
