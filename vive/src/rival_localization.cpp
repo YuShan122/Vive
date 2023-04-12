@@ -106,6 +106,7 @@ RivalMulti::RivalMulti(ros::NodeHandle nh_g, ros::NodeHandle nh_p){
     else std::cout << node_name << " get parameters of robot failed.\n";
 
     // ADD : initialize sample number
+    correction_sample_number = (correction_sample_number == 0) ? 100 : correction_sample_number;
     correction_finished[0] = correction_finished[1] = false;
     rival_correction_sample_number[0] = rival_correction_sample_number[1] = correction_sample_number;
     rival_correction_data[0] = rival_correction_data[1] = 0;
@@ -113,16 +114,32 @@ RivalMulti::RivalMulti(ros::NodeHandle nh_g, ros::NodeHandle nh_p){
 
 void RivalMulti::Rival1_callback(const nav_msgs::Odometry::ConstPtr& rival1_msg){
     rival1_odom.header.stamp = rival1_msg->header.stamp;
-    rival1_odom.x = rival1_msg->pose.pose.position.x;
-    rival1_odom.y = rival1_msg->pose.pose.position.y;
+
+    // ADD : do tracker correction
+    rival1_odom.x = (correction_finished[0] == 0) ? rival1_msg->pose.pose.position.x :
+        std::cos(rival_correction_data[0]) * (rival1_msg->pose.pose.position.x - 1.5) -
+        std::sin(rival_correction_data[0]) * (rival1_msg->pose.pose.position.y - 1.) + 1.5;
+
+    rival1_odom.y = (correction_finished[1] == 0) ? rival1_msg->pose.pose.position.y :
+        std::sin(rival_correction_data[1]) * (rival1_msg->pose.pose.position.x - 1.5) +
+        std::cos(rival_correction_data[1]) * (rival1_msg->pose.pose.position.y - 1.) + 1.;
+
     rival1_odom.Vx = rival1_msg->twist.twist.linear.x;
     rival1_odom.Vy = rival1_msg->twist.twist.linear.y;
 }
 
 void RivalMulti::Rival2_callback(const nav_msgs::Odometry::ConstPtr& rival2_msg){
     rival2_odom.header.stamp = rival2_msg->header.stamp;
-    rival2_odom.x = rival2_msg->pose.pose.position.x;
-    rival2_odom.y = rival2_msg->pose.pose.position.y;
+
+    // ADD : do tracker correction
+    rival2_odom.x = (correction_finished[0] == 0) ? rival2_msg->pose.pose.position.x :
+        std::cos(rival_correction_data[0]) * (rival2_msg->pose.pose.position.x - 1.5) -
+        std::sin(rival_correction_data[0]) * (rival2_msg->pose.pose.position.y - 1.) + 1.5;
+
+    rival2_odom.y = (correction_finished[1] == 0) ? rival2_msg->pose.pose.position.y :
+        std::sin(rival_correction_data[1]) * (rival2_msg->pose.pose.position.x - 1.5) +
+        std::cos(rival_correction_data[1]) * (rival2_msg->pose.pose.position.y - 1.) + 1.;
+
     rival2_odom.Vx = rival2_msg->twist.twist.linear.x;
     rival2_odom.Vy = rival2_msg->twist.twist.linear.y;
 }
@@ -151,8 +168,9 @@ bool RivalMulti::Rival_match(std::string name, OdomInfo rival_data, std::vector<
         if(match_error <= match_tole){
 
             // ADD VIVE OFFSET : match successful => collect offset data
-            if(name == "rival1") offsetCollection(1, *it, rival_data);
-            else offsetCollection(2, *it, rival_data);
+            if(name == "rival1") offsetCollection(0, *it, rival_data);
+            else offsetCollection(1, *it, rival_data);
+
 
             it = Lidar_vec.erase(it);
             // Lidar_vec.erase(remove(Lidar_vec.begin(), Lidar_vec.end(), *it), Lidar_vec.end());

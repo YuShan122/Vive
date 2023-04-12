@@ -10,6 +10,7 @@
         <param name="lidar_topic_name" type="string" value="/robot1/obstacle_array"/>
         <param name="lidar_pub_topic_name" type="string" value="/RivalObstacle"/>
         <param name="time_out" type="double" value="0.1"/>
+        <param name="correction_sample_number" type="int" value="100"/>
         <param name="match_tole" type="double" value="0.2"/>     <!-- unit is meter -->
         <param name="boundary_upper_x" type="double" value="3"/> <!-- unit is meter -->
         <param name="boundary_down_x" type="double" value="0"/>  <!-- unit is meter -->
