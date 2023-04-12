@@ -256,18 +256,6 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
     }
     bool boundary_ok = false;
 
-    // ADD : publish other obstacle data to lidar obstacle topic
-    obstacle_detector::Obstacles output_obstacles;
-    for(auto obstacle : Lidar_vec){
-        obstacle_detector::CircleObstacle circle;
-        circle.center.x = obstacle.x;
-        circle.center.y = obstacle.y;
-        circle.velocity.x = obstacle.Vx;
-        circle.velocity.y - obstacle.Vy;
-        output_obstacles.circles.push_back(circle);
-    }
-    lidar_pub.publish(output_obstacles);
-    Lidar_vec.clear();
 
     if(!rival1_ok){
         if(Lidar_vec.empty()){
@@ -276,28 +264,6 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
                 if(publish_rival_odom("rival1", rival1_odom))
                     printf("1-1-0-rival1 tracker isn't match lidar, but publish tracker\n");
                 rival1_ok = true;
-            }
-        }
-        std::vector<OdomInfo>::iterator it;
-        for(it = Lidar_vec.begin(); it != Lidar_vec.end(); it++){
-            boundary_ok = boundary(it->x, it->y);
-            if(boundary_ok){
-                if(publish_rival_odom("rival1", *it))
-                    printf("1-0-1-Rival1 use lidar info to publish\n");
-                it = Lidar_vec.erase(it);
-                rival1_ok = true;
-                break;
-            }
-            if(Lidar_vec.size() == 1 || it == Lidar_vec.end()-- && !rival1_ok){
-                printf("check point \n");
-                boundary_ok = boundary(rival1_odom.x, rival1_odom.y);
-                if(boundary_ok){
-                    if(publish_rival_odom("rival1", rival1_odom))
-                        printf("1-1-0-rival1 tracker isn't match lidar, but publish tracker\n");
-                    rival1_ok = true;
-                    break;
-                }
-                break;
             }
         }
     }
@@ -310,29 +276,21 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
                 rival2_ok = true;
             }
         }
-
-        std::vector<OdomInfo>::iterator it;
-        for(it = Lidar_vec.begin(); it != Lidar_vec.end(); it++){
-            boundary_ok = boundary(it->x, it->y);
-            if(boundary_ok){
-                if(publish_rival_odom("rival2", *it))
-                    printf("2-0-1-Rival2 use lidar info to publish\n");
-                it = Lidar_vec.erase(it);
-                rival2_ok = true;
-                break;
-            }
-            if(Lidar_vec.empty() || it == Lidar_vec.end()--){
-                boundary_ok = boundary(rival2_odom.x, rival2_odom.y);
-                if(true){
-                    if(publish_rival_odom("rival2", rival2_odom))
-                        printf("2-1-0-rival2 tracker isn't match lidar, but publish tracker\n");
-                    rival2_ok = true;
-                    break;
-                }
-                break;
-            }
-        }
     }
+
+    // ADD : publish other obstacle data to lidar obstacle topic
+    obstacle_detector::Obstacles output_obstacles;
+    for(auto obstacle : Lidar_vec){
+        obstacle_detector::CircleObstacle circle;
+        circle.center.x = obstacle.x;
+        circle.center.y = obstacle.y;
+        circle.velocity.x = obstacle.Vx;
+        circle.velocity.y = obstacle.Vy;
+        output_obstacles.circles.push_back(circle);
+    }
+    lidar_pub.publish(output_obstacles);
+    Lidar_vec.clear();
+
     if(rival1_ok && rival2_ok){
         return true;
     }
