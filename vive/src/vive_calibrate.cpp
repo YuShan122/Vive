@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
     reloadParam(nh);
 
     survive_simple_close(actx);
-    printf("close the thread\n");
+    printf("close vive_calibrate\n");
     return 0;
 }
 
@@ -172,7 +172,7 @@ void initialize(ros::NodeHandle nh_) {
     nh_.getParam(node_name + "/tracker_abs_X", tracker_abs.X);
     nh_.getParam(node_name + "/tracker_abs_Y", tracker_abs.Y);
     nh_.getParam(node_name + "/tracker_abs_Z", tracker_abs.Z);
-    nh_.getParam(node_name + "/tracker_name", tracker_name);
+    nh_.getParam(node_name + "/calibrate_tracker", tracker_name);
 
     if (strcmp("tracker_A", tracker_name.c_str()) == 0) tracker_serial_number = "LHR-94135635";
     if (strcmp("tracker_B", tracker_name.c_str()) == 0) tracker_serial_number = "LHR-15565625";
@@ -233,24 +233,24 @@ void reloadParam(ros::NodeHandle nh_)
     ss = ss_prefix + "/LH2_Z " + std::to_string(transform_LH2ToMap.getRotation().getZ());
     system(ss.c_str());
     auto path = "rosparam dump ~/eurobot_localization_ws/src/Eurobot-Localization/vive/param/vive_calibrate.yaml vive_calibrate";
-    printf("dump param to vive_calibrate.yaml\n");
     system(path);
+    printf("dumped param to vive_claibrate.yaml\n");
     deleteParam(nh_);
 }
 
 void deleteParam(ros::NodeHandle nh_)
 {
     auto node_name = ros::this_node::getName();
-    nh_.deleteParam(node_name + "/tracker_abs_x");
-    nh_.deleteParam(node_name + "/tracker_abs_y");
-    nh_.deleteParam(node_name + "/tracker_abs_z");
-    nh_.deleteParam(node_name + "/tracker_abs_W");
-    nh_.deleteParam(node_name + "/tracker_abs_X");
-    nh_.deleteParam(node_name + "/tracker_abs_Y");
-    nh_.deleteParam(node_name + "/tracker_abs_Z");
-    auto path = "rosparam dump ~/eurobot_localization_ws/src/Eurobot-Localization/vive/param/vive_localization.yaml vive_calibrate";
-    printf("load param to vive_localization.yaml\n");
-    system(path);
+    // nh_.deleteParam(node_name + "/tracker_abs_x");
+    // nh_.deleteParam(node_name + "/tracker_abs_y");
+    // nh_.deleteParam(node_name + "/tracker_abs_z");
+    // nh_.deleteParam(node_name + "/tracker_abs_W");
+    // nh_.deleteParam(node_name + "/tracker_abs_X");
+    // nh_.deleteParam(node_name + "/tracker_abs_Y");
+    // nh_.deleteParam(node_name + "/tracker_abs_Z");
+    // auto path = "rosparam dump ~/eurobot_localization_ws/src/Eurobot-Localization/vive/param/vive_localization.yaml vive_calibrate";
+    // printf("load param to vive_localization.yaml\n");
+    // system(path);
 
     std::string deleteparam = "rosparam delete " + node_name;
     system(deleteparam.c_str());

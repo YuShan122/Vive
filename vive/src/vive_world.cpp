@@ -186,6 +186,7 @@ std::string run_service_name;
 int freq;
 int unit;
 double max_distance_bt_maps;
+bool print = true;
 
 /*globle functions*/
 void initialize(ros::NodeHandle nh_) {
@@ -200,6 +201,7 @@ void initialize(ros::NodeHandle nh_) {
     ok &= nh_.getParam("vel_topic_name", vel_topic_name);
     ok &= nh_.getParam("run_service_name", run_service_name);
     ok &= nh_.getParam("max_distance_bt_maps", max_distance_bt_maps);
+    ok &= nh_.getParam("print", print);
 
     std::cout << "param: freq= " << freq << std::endl;
     std::cout << "param: unit= " << unit << std::endl;
@@ -247,12 +249,14 @@ ViveMap find_avg_map(ViveMap map0, ViveMap map1, ViveMap map2, bool* send_) {
     if ((d01 > max_distance_bt_maps && d20 > max_distance_bt_maps) || !map0.has_tf_to_world()) { ok0 = false; divisor--; }
     if ((d12 > max_distance_bt_maps && d01 > max_distance_bt_maps) || !map1.has_tf_to_world()) { ok1 = false; divisor--; }
     if ((d20 > max_distance_bt_maps && d12 > max_distance_bt_maps) || !map2.has_tf_to_world()) { ok2 = false; divisor--; }
-    std::cout << "(ok0 ok1 ok2 divisor d01 d12 d20): "
+    if (print)
+        std::cout << "(ok0 ok1 ok2 divisor d01 d12 d20): "
         << ok0 << " " << ok1 << " " << ok2 << " " << divisor << " "
         << d01 << " " << d12 << " " << d20 << std::endl;
 
     if (divisor == 0) {
-        std::cout << world_frame << ": three maps do not match. ";
+        if (print)
+            std::cout << world_frame << ": three maps do not match. ";
         std::cout << "distances between maps(d01 d12 d20): "
             << d01 << " " << d12 << " " << d20 << std::endl;
         divisor = 1;
@@ -341,15 +345,16 @@ int main(int argc, char** argv) {
             SurviveVelocity velocity;
             survive_simple_object_get_latest_pose(it, &pose);
             survive_simple_object_get_latest_velocity(it, &velocity);
-            printf("%d, %d, %d, %s, %s, %u%, %f, %f, %f, %f, %f, %f, %f\n",
-                survive_simple_is_running(actx),
-                survive_simple_wait_for_update(actx),
-                event.event_type,
-                survive_simple_object_name(it),
-                survive_simple_serial_number(it),
-                survive_simple_object_charge_percet(it),
-                pose.Pos[0], pose.Pos[1], pose.Pos[2],
-                pose.Rot[0], pose.Rot[1], pose.Rot[2], pose.Rot[3]);
+            if (print)
+                printf("%d, %d, %d, %s, %s, %u%, %f, %f, %f, %f, %f, %f, %f\n",
+                    survive_simple_is_running(actx),
+                    survive_simple_wait_for_update(actx),
+                    event.event_type,
+                    survive_simple_object_name(it),
+                    survive_simple_serial_number(it),
+                    survive_simple_object_charge_percet(it),
+                    pose.Pos[0], pose.Pos[1], pose.Pos[2],
+                    pose.Rot[0], pose.Rot[1], pose.Rot[2], pose.Rot[3]);
 
             if (evt_type == SurviveSimpleEventType_PoseUpdateEvent) {
                 ViveDevice device(survive_prefix, survive_simple_serial_number(it));
