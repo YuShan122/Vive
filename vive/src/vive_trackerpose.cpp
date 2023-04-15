@@ -145,9 +145,9 @@ void Robot::publish_vive_pose() {
     }
 }
 void Robot::print_pose(int unit_) {
-    transform_from_tracker_filter.setOrigin(tf::Vector3(pose_filter.x, pose_filter.y, pose_filter.z));
-    transform_from_tracker_filter.setRotation(tf::Quaternion(pose_filter.X, pose_filter.Y, pose_filter.Z, pose_filter.W));
-    br.sendTransform(tf::StampedTransform(transform_from_tracker_filter, ros::Time::now(), map_frame, robot_name + "/vive_frame"));
+    // transform_from_tracker_filter.setOrigin(tf::Vector3(pose_filter.x, pose_filter.y, pose_filter.z));
+    // transform_from_tracker_filter.setRotation(tf::Quaternion(pose_filter.X, pose_filter.Y, pose_filter.Z, pose_filter.W));
+    // br.sendTransform(tf::StampedTransform(transform_from_tracker_filter, ros::Time::now(), map_frame, robot_name + "/vive_frame"));
     if (has_tf) {
         std::cout << robot_name << "/vive_pose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z) ";
         std::cout << std::setw(10) << std::setprecision(6) << pose_filter.x * unit_ << " ";
