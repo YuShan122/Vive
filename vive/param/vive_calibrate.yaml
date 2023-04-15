@@ -19,7 +19,7 @@ LH2_Z: 0.695484
 LH2_x: 0.638328
 LH2_y: 0.286843
 LH2_z: -3.557286
-calibrate_tracker: tracker_C
+calibrate_tracker: tracker_E
 freq: 100
 tracker_abs_W: 0.0
 tracker_abs_X: 0.7071068

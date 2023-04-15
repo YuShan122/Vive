@@ -1,24 +1,22 @@
 <launch>
-    <arg name="survive1_active"/>
-    <arg name="survive1_tracker"/>
+    <!-- <arg name="survive1_active"/>
+    <arg name="survive1_tracker"/> -->
     <!-- <arg name="survive2_active"/>
     <arg name="survive2_tracker"/> -->
     <!-- <arg name="survive3_active"/>
     <arg name="survive3_tracker"/> -->
     <!-- <arg name="survive4_active"/>
     <arg name="survive4_tracker"/> -->
-    <!-- <arg name="survive1_active" default="true"/>
-    <arg name="survive1_tracker" default="trackerB"/> -->
+    <arg name="survive1_active" default="false"/>
+    <arg name="survive1_tracker" default="trackerB"/>
     <arg name="survive2_active" default="false"/>
     <arg name="survive2_tracker" default="trackerB"/>
     <arg name="survive3_active" default="false"/>
     <arg name="survive3_tracker" default="trackerB"/>
     <arg name="survive4_active" default="false"/>
     <arg name="survive4_tracker" default="trackerB"/>
-    <arg name="rival1_active" default="false"/>
-    <arg name="rival2_active" default="false"/>
     <arg name="map_tole" default="0.2"/>
-    <arg name="print_info" default="true"/>
+    <arg name="print_info" default="false"/>
 
     <group if="$(arg survive1_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
@@ -46,7 +44,7 @@
     
     <group if="$(arg survive3_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
-            <rosparam file="$(find vive)/param/vive_calibrate.yaml" command="load" /> <!-- freq, unit and tf_to_map -->
+            <rosparam file="$(find vive)/param/vive_calibrate.yaml" command="load" />
             <param name ="tracker" type="string" value="$(arg survive3_tracker)"/>
             <param name ="survive_prefix" type="string" value="survive3_"/>
             <param name ="vel_topic_name" type="string" value="tracker_vel"/>
@@ -55,7 +53,7 @@
             <param name ="print" type="bool" value="$(arg print_info)"/>
         </node>
     </group>
-    <group ns="survive3" if="$(arg rival1_active)">
+    <!-- <group ns="survive3" if="$(arg rival1_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
             <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
             <param name ="tracker" type="string" value="trackerC"/>
@@ -65,11 +63,11 @@
             <param name ="max_distance_bt_maps" type="double" value="$(arg map_tole)"/>
             <param name ="print" type="bool" value="$(arg print_info)"/>
         </node>
-    </group>
+    </group> -->
 
     <group if="$(arg survive4_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
-            <rosparam file="$(find vive)/param/vive_calibrate.yaml" command="load" /> <!-- freq, unit and tf_to_map -->
+            <rosparam file="$(find vive)/param/vive_calibrate.yaml" command="load" /> 
             <param name ="tracker" type="string" value="$(arg survive4_tracker)"/>
             <param name ="survive_prefix" type="string" value="survive4_"/>
             <param name ="vel_topic_name" type="string" value="tracker_vel"/>
@@ -78,7 +76,7 @@
             <param name ="print" type="bool" value="$(arg print_info)"/>
         </node>
     </group>
-    <group ns="survive4" if="$(arg rival2_active)">
+    <!-- <group ns="survive4" if="$(arg rival2_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
             <rosparam file="$(find vive)/param/vive_localization.yaml" command="load" />
             <param name ="tracker" type="string" value="trackerA"/>
@@ -88,6 +86,6 @@
             <param name ="max_distance_bt_maps" type="double" value="$(arg map_tole)"/>
             <param name ="print" type="bool" value="$(arg print_info)"/>
         </node>
-    </group>
+    </group> -->
 
 </launch>

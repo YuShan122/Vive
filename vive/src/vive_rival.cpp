@@ -151,6 +151,9 @@ void Rival::lookup_transform_from_map() {
 }
 void Rival::publish_vive_pose(bool status) {
     if (has_tf && status) {
+        pose.header.frame_id = map_frame;
+        pose.header.frame_id = tracker_frame;
+        pose.header.stamp = ros::Time::now();
         pose.pose.pose.orientation.w = transform_from_map.getRotation().getW();
         pose.pose.pose.orientation.x = transform_from_map.getRotation().getX();
         pose.pose.pose.orientation.y = transform_from_map.getRotation().getY();
