@@ -174,48 +174,16 @@ link_directories(../libsurvive/libs)
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-# add_executable(publish_pose_and_tf src/publish_pose_and_tf.cpp)
-# target_link_libraries(publish_pose_and_tf ${catkin_LIBRARIES})
-
-# add_executable(vive_test_pose src/vive_test_pose.cpp)
-# target_link_libraries(vive_test_pose survive  ${catkin_LIBRARIES})
 
 set(LIBS
 ${PROJECT_SOURCE_DIR}/../libsurvive/bin/libsurvive.so
 )
-
-
-# add_executable(lighthouse_tf_plus src/lighthouse_tf_plus.cpp)
-# add_dependencies(lighthouse_tf_plus ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(lighthouse_tf_plus  ${catkin_LIBRARIES})
-
-# add_executable(test_array src/test_array.cpp)
-# target_link_libraries(test_array  ${catkin_LIBRARIES})
-
-# add_executable(survivie-cli src/survivie-cli.cpp)
-# target_link_libraries(survivie-cli ${LIBS} ${catkin_LIBRARIES})
-
-# add_executable(ros_tools_maincc src/ros_tools_maincc.cpp)
-# target_link_libraries(ros_tools_maincc ${LIBS}  ${catkin_LIBRARIES} )
-
-# add_executable(api_test src/api_test.cpp)
-# target_link_libraries(api_test ${LIBS}  ${catkin_LIBRARIES} )
-
-# add_executable(basic_data src/basic_data.cpp)
-# add_dependencies(basic_data ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(basic_data ${LIBS}  ${catkin_LIBRARIES} )
 
 add_executable(api_simple_test src/api_simple_test.cpp)
 target_link_libraries(api_simple_test ${LIBS}  ${catkin_LIBRARIES} )
 
 add_executable(vive_calibrate src/vive_calibrate.cpp)
 target_link_libraries(vive_calibrate ${LIBS}  ${catkin_LIBRARIES} )
-
-# add_executable(vive_localization src/vive_localization.cpp)
-# target_link_libraries(vive_localization ${LIBS}  ${catkin_LIBRARIES} )
-
-# add_executable(vive_localization_multi src/vive_localization_multi.cpp)
-# target_link_libraries(vive_localization_multi ${LIBS}  ${catkin_LIBRARIES} )
 
 add_executable(fake_ekf src/fake_ekf.cpp)
 target_link_libraries(fake_ekf ${LIBS}  ${catkin_LIBRARIES} )
@@ -229,37 +197,6 @@ target_link_libraries(vive_trackerpose ${LIBS}  ${catkin_LIBRARIES} )
 add_executable(vive_rival src/vive_rival.cpp)
 target_link_libraries(vive_rival ${LIBS}  ${catkin_LIBRARIES} )
 
-add_executable(rival_localization src/rival_localization.cpp)
-target_link_libraries(rival_localization ${LIBS}  ${catkin_LIBRARIES} )
-
-add_executable(vive_localization_rival_single src/vive_localization_rival_single.cpp)
-add_dependencies(vive_localization_rival_single ${catkin_EXPORTED_TARGETS})
-target_link_libraries(vive_localization_rival_single ${LIBS}  ${catkin_LIBRARIES} )
-
-add_executable(vive_NavToGeo src/vive_NavToGeo.cpp)
-add_dependencies(vive_NavToGeo ${catkin_EXPORTED_TARGETS})
-target_link_libraries(vive_NavToGeo ${LIBS}  ${catkin_LIBRARIES} )
-
-# add_executable(predict_enemy_vel src/predict_enemy_vel.cpp)
-# add_dependencies(predict_enemy_vel ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(predict_enemy_vel ${LIBS}  ${catkin_LIBRARIES} )
-
-# add_executable(vive include/yamlsetup.h)
-# target_link_libraries(vive ${YAMLCPP_LIBRARIES}  ${catkin_LIBRARIES} )
-
-# add_executable(ros_tools_maincc_revise src/ros_tools_maincc_revise.cpp)
-# target_link_libraries(ros_tools_maincc_revise ${LIBS} ${catkin_LIBRARIES})
-
-
-# add_executable(api_example src/api_example.c)
-# target_link_libraries(api_example ${LIBS} ${catkin_LIBRARIES})
-
-# add_executable(transfer_function src/transfer_function.cpp)
-# target_link_libraries(transfer_function  ${catkin_LIBRARIES})
-# survive
-
-# add_executable(read_config src/read_config.cpp)
-# target_link_libraries(read_config  ${catkin_LIBRARIES})
 
 #############
 ## Install ##
