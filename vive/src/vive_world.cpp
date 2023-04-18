@@ -84,7 +84,7 @@ public:
     ViveMap();
     ViveMap(std::string f_);
     ViveMap(std::string spf_, int od_);
-    void set_tf_from_lh(ros::NodeHandle nh_);
+    void set_tf_from_lh(ros::NodeHandle nh_, std::string side_);
     void send_tf_from_lh();
     void lookup_tf_to_world(std::string wf_, tf::TransformListener& listener);
     VIVEPOSE get_p_to_world(bool ok);
@@ -109,15 +109,27 @@ ViveMap::ViveMap(std::string spf_, int od_) {
     frame = spf_ + "map" + std::to_string(order);
     lh_frame = spf_ + "LH" + std::to_string(order);
 }
-void ViveMap::set_tf_from_lh(ros::NodeHandle nh_) {
+void ViveMap::set_tf_from_lh(ros::NodeHandle nh_, std::string side_) {
     bool ok = true;
-    ok &= nh_.getParam("LH" + std::to_string(order) + "_x", p_from_lh.x);
-    ok &= nh_.getParam("LH" + std::to_string(order) + "_y", p_from_lh.y);
-    ok &= nh_.getParam("LH" + std::to_string(order) + "_z", p_from_lh.z);
-    ok &= nh_.getParam("LH" + std::to_string(order) + "_W", p_from_lh.W);
-    ok &= nh_.getParam("LH" + std::to_string(order) + "_X", p_from_lh.X);
-    ok &= nh_.getParam("LH" + std::to_string(order) + "_Y", p_from_lh.Y);
-    ok &= nh_.getParam("LH" + std::to_string(order) + "_Z", p_from_lh.Z);
+    if (strcmp(side_.c_str(), "g") == 0) {
+        ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_x", p_from_lh.x);
+        ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_y", p_from_lh.y);
+        ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_z", p_from_lh.z);
+        ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_W", p_from_lh.W);
+        ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_X", p_from_lh.X);
+        ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_Y", p_from_lh.Y);
+        ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_Z", p_from_lh.Z);
+    }
+    if (strcmp(side_.c_str(), "b") == 0) {
+        ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_x", p_from_lh.x);
+        ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_y", p_from_lh.y);
+        ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_z", p_from_lh.z);
+        ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_W", p_from_lh.W);
+        ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_X", p_from_lh.X);
+        ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_Y", p_from_lh.Y);
+        ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_Z", p_from_lh.Z);
+    }
+
     if (ok) {
         std::cout << "set tf: lh" << order << " to map" << order << " successed." << std::endl;
     }
@@ -187,6 +199,7 @@ int freq;
 int unit;
 double max_distance_bt_maps;
 bool print = true;
+std::string side;
 
 /*globle functions*/
 void initialize(ros::NodeHandle nh_) {
@@ -202,6 +215,7 @@ void initialize(ros::NodeHandle nh_) {
     ok &= nh_.getParam("run_service_name", run_service_name);
     ok &= nh_.getParam("max_distance_bt_maps", max_distance_bt_maps);
     ok &= nh_.getParam("print", print);
+    ok &= nh_.getParam("side", side);
 
     std::cout << "param: freq= " << freq << std::endl;
     std::cout << "param: unit= " << unit << std::endl;
@@ -329,9 +343,9 @@ int main(int argc, char** argv) {
     ViveMap map1(survive_prefix, 1);
     ViveMap map2(survive_prefix, 2);
 
-    map0.set_tf_from_lh(nh_);
-    map1.set_tf_from_lh(nh_);
-    map2.set_tf_from_lh(nh_);
+    map0.set_tf_from_lh(nh_, side);
+    map1.set_tf_from_lh(nh_, side);
+    map2.set_tf_from_lh(nh_, side);
 
     struct SurviveSimpleEvent event = {};
     while (keepRunning && survive_simple_wait_for_event(actx, &event) != SurviveSimpleEventType_Shutdown && ros::ok()) {
