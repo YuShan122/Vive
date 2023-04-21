@@ -34,6 +34,13 @@ typedef struct vivePose {
     double W, X, Y, Z;
     double yaw, roll, pitch;
 }VIVEPOSE;
+struct xy {
+    double x, y, l; //l: the lengh of the vector
+};
+typedef struct caliPose {
+    struct xy pt; //true position
+    struct xy pg; //the position you get before rotate-calibrate.
+}CALIPOSE;
 
 /*classes and their functions*/
 class ViveDevice {
@@ -92,6 +99,7 @@ public:
     void set_tf_to_world(tf::StampedTransform tf_, VIVEPOSE p_);
     void send_tf_to_world(std::string swf_);
     bool has_tf_to_world();
+    void rotate_calibrate();
 private:
     std::string frame;
     std::string lh_frame;
@@ -200,6 +208,7 @@ int unit;
 double max_distance_bt_maps;
 bool print = true;
 std::string side;
+tf::StampedTransform tf_rot;
 
 /*globle functions*/
 void initialize(ros::NodeHandle nh_) {
@@ -237,6 +246,61 @@ void deleteParam()
     system(deleteparam.c_str());
     std::cout << "node: " << node_name << " parameters deleted." << std::endl;
 }
+tf::StampedTransform get_calibrate_tf(ros::NodeHandle nh_) {
+    CALIPOSE calipos[4];
+    double cos_[4], sin_[4], cos_avg, sin_avg, coshalf_, sinhalf_;
+    tf::StampedTransform tf_rot_calibrate;
+    double tf_x, tf_y;
+    bool ok = true;
+
+    ok &= nh_.getParam("P1/pos_true_x", calipos[0].pt.x);
+    ok &= nh_.getParam("P1/pos_true_y", calipos[0].pt.y);
+    ok &= nh_.getParam("P1/pos_get__x", calipos[0].pg.x);
+    ok &= nh_.getParam("P1/pos_get__y", calipos[0].pg.y);
+    ok &= nh_.getParam("P2/pos_true_x", calipos[1].pt.x);
+    ok &= nh_.getParam("P2/pos_true_y", calipos[1].pt.y);
+    ok &= nh_.getParam("P2/pos_get__x", calipos[1].pg.x);
+    ok &= nh_.getParam("P2/pos_get__y", calipos[1].pg.y);
+    ok &= nh_.getParam("P3/pos_true_x", calipos[2].pt.x);
+    ok &= nh_.getParam("P3/pos_true_y", calipos[2].pt.y);
+    ok &= nh_.getParam("P3/pos_get__x", calipos[2].pg.x);
+    ok &= nh_.getParam("P3/pos_get__y", calipos[2].pg.y);
+    ok &= nh_.getParam("P4/pos_true_x", calipos[3].pt.x);
+    ok &= nh_.getParam("P4/pos_true_y", calipos[3].pt.y);
+    ok &= nh_.getParam("P4/pos_get__x", calipos[3].pg.x);
+    ok &= nh_.getParam("P4/pos_get__y", calipos[3].pg.y);
+
+    for (int i = 0; i < 4; i++) {
+        calipos[i].pt.x = (double)calipos[i].pt.x - 1.5;
+        calipos[i].pt.y = (double)calipos[i].pt.y - 1.0;
+        calipos[i].pg.x = (double)calipos[i].pg.x - 1.5;
+        calipos[i].pg.y = (double)calipos[i].pg.y - 1.0;
+        calipos[i].pt.l = sqrt(pow(calipos[i].pt.x, 2) + pow(calipos[i].pt.y, 2));
+        calipos[i].pg.l = sqrt(pow(calipos[i].pg.x, 2) + pow(calipos[i].pg.y, 2));
+
+        //cos, sin: in radian, between -1 and 1.
+        cos_[i] = (calipos[i].pg.x * calipos[i].pt.x + calipos[i].pg.y * calipos[i].pt.y) /
+            (calipos[i].pg.l * calipos[i].pt.l);
+        sin_[i] = (calipos[i].pg.x * calipos[i].pt.y - calipos[i].pg.y * calipos[i].pt.x) /
+            (calipos[i].pg.l * calipos[i].pt.l);
+    }
+
+    cos_avg = (double)(cos_[0] + cos_[1] + cos_[2] + cos_[3]) / 4;
+    sin_avg = (double)(sin_[0] + sin_[1] + sin_[2] + sin_[3]) / 4;
+    if (cos_avg < -sqrt(2) / 2 && cos_avg >= -1) coshalf_ = -sqrt((1 + cos_avg) / 2);
+    else coshalf_ = sqrt((1 + cos_avg) / 2);
+    if (sin_avg >= 0 && sin_avg <= 1) sinhalf_ = sqrt((1 - cos_avg) / 2);
+    else sinhalf_ = -sqrt((1 - cos_avg) / 2);
+
+    tf_x = (double)1.5 + (cos_avg * -1.5 - sin_avg * -1.0);
+    tf_y = (double)1.0 + (sin_avg * -1.5 + cos_avg * -1.0);
+    tf_rot_calibrate.setOrigin(tf::Vector3(tf_x, tf_y, 0));
+    tf_rot_calibrate.setRotation(tf::Quaternion(0, 0, sinhalf_, coshalf_));
+
+    std::cout << "(cos sin coshalf sinhalf tf_x tf_y)" << cos_avg << " " << sin_avg << " " << coshalf_ << " " << sinhalf_ << " " << tf_x << " " << tf_y << std::endl;
+
+    return tf_rot_calibrate;
+}
 
 double find_distance(ViveMap map1, ViveMap map2) {
     double distance;
@@ -248,7 +312,7 @@ double find_distance(ViveMap map1, ViveMap map2) {
     return distance;
 }
 ViveMap find_avg_map(ViveMap map0, ViveMap map1, ViveMap map2, bool* send_) {
-    ViveMap avg_map(survive_prefix + "map");
+    ViveMap avg_map(survive_prefix + "map_avg");
     tf::Quaternion avg_q;
     tf::StampedTransform avg_tf;
     VIVEPOSE avg_p;
@@ -333,6 +397,7 @@ int main(int argc, char** argv) {
     }
 
     initialize(nh_);
+    tf_rot = get_calibrate_tf(nh_);
     ros::Rate rate(freq);
     ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>(vel_topic_name, 10);
     ros::ServiceClient run_client = nh.serviceClient<std_srvs::SetBool>(run_service_name);
@@ -387,8 +452,12 @@ int main(int argc, char** argv) {
             map2.lookup_tf_to_world(world_frame, listener);
 
             bool send = true;
-            ViveMap map = find_avg_map(map0, map1, map2, &send);
-            if (send) map.send_tf_to_world(world_frame);
+            ViveMap map_avg = find_avg_map(map0, map1, map2, &send);
+            if (send) {
+                map_avg.send_tf_to_world(world_frame);
+                br.sendTransform(tf::StampedTransform(tf_rot, ros::Time::now(),
+                    survive_prefix + "map", survive_prefix + "map_avg"));
+            }
         }
         if (evt_type_bf != SurviveSimpleEventType_None && evt_type == SurviveSimpleEventType_None) {
             run_srv.request.data = false;

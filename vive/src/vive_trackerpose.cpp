@@ -35,6 +35,7 @@ private:
     tf::TransformBroadcaster br;
     tf::TransformListener listener;
     tf::StampedTransform transform_from_map;
+    tf::StampedTransform transform_from_map_avg;
     tf::StampedTransform transform_from_tracker;
     tf::StampedTransform transform_from_tracker_filter;
     std::string node_name_;
@@ -48,6 +49,7 @@ private:
     double covariance[36];
     VIVEPOSE pose_raw;
     VIVEPOSE pose_filter;
+    VIVEPOSE pose_from_avg;
     VIVEPOSE rot_from_tracker;
     double tole_with_ekf;
     bool ekf_active;
@@ -106,6 +108,13 @@ void Robot::lookup_transform_from_map() {
         has_tf = false;
         std::cout << robot_name << ": connot lookup transform from " << map_frame << " to " << tracker_frame << std::endl;
     }
+    try {
+        listener.lookupTransform(map_frame + "_avg", robot_frame, ros::Time(0), transform_from_map_avg);
+    }
+    catch (tf::TransformException& ex) {
+        has_tf = false;
+        std::cout << robot_name << ": connot lookup transform from " << map_frame + "_avg" << " to " << tracker_frame << std::endl;
+    }
     pose_raw.x = transform_from_map.getOrigin().getX();
     pose_raw.y = transform_from_map.getOrigin().getY();
     pose_raw.z = transform_from_map.getOrigin().getZ();
@@ -113,6 +122,14 @@ void Robot::lookup_transform_from_map() {
     pose_raw.X = transform_from_map.getRotation().getX();
     pose_raw.Y = transform_from_map.getRotation().getY();
     pose_raw.Z = transform_from_map.getRotation().getZ();
+
+    pose_from_avg.x = transform_from_map_avg.getOrigin().getX();
+    pose_from_avg.y = transform_from_map_avg.getOrigin().getY();
+    pose_from_avg.z = transform_from_map_avg.getOrigin().getZ();
+    pose_from_avg.W = transform_from_map_avg.getRotation().getW();
+    pose_from_avg.X = transform_from_map_avg.getRotation().getX();
+    pose_from_avg.Y = transform_from_map_avg.getRotation().getY();
+    pose_from_avg.Z = transform_from_map_avg.getRotation().getZ();
 
     pose_filter = filter(pose_raw);
     in_boundry_ = in_boundry(pose_filter.x, pose_filter.y);
@@ -157,6 +174,15 @@ void Robot::print_pose(int unit_) {
         std::cout << std::setw(10) << std::setprecision(4) << pose_filter.X << " ";
         std::cout << std::setw(10) << std::setprecision(4) << pose_filter.Y << " ";
         std::cout << std::setw(10) << std::setprecision(4) << pose_filter.Z << std::endl;
+
+        std::cout << robot_name << "/vive_pose_before_rotate: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z) ";
+        std::cout << std::setw(10) << std::setprecision(6) << pose_from_avg.x * unit_ << " ";
+        std::cout << std::setw(10) << std::setprecision(6) << pose_from_avg.y * unit_ << " ";
+        std::cout << std::setw(10) << std::setprecision(6) << pose_from_avg.z * unit_ << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_avg.W << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_avg.X << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_avg.Y << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_avg.Z << std::endl;
     }
     else {
         std::cout << robot_name << "/" << map_frame << "->" << tracker_frame << " do not have tf." << std::endl;
