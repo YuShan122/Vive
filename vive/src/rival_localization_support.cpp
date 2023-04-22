@@ -40,7 +40,7 @@ public:
     bool publish_obstacle(std::vector<OdomInfo>& output_vec);
     bool distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vector<OdomInfo>& Lidar_vec);
     bool boundary(double x, double y);
-    OdomInfo tracking(OdomInfo last_rival, std::vector<OdomInfo>& Lidar_vec);
+    OdomInfo tracking(std::string rival_name, OdomInfo last_rival, std::vector<OdomInfo>& Lidar_vec);
 
     // ADD : function for collect offset data
     void offsetCollection(int rival_number, OdomInfo lidarData, OdomInfo trackerData);
@@ -225,8 +225,11 @@ double RivalMulti::distance(double a_x, double a_y, double b_x, double b_y){
     return sqrt(pow((a_x - b_x), 2) + pow((a_y - b_y), 2));
 }
 
+// ADD : function definition for tracking rival last frame
+OdomInfo RivalMulti::tracking(std::string rival_name, OdomInfo last_rival, std::vector<OdomInfo>& Lidar_vec){
+    if(Lidar_vec.size() == 0) return last_rival;
 
-OdomInfo RivalMulti::tracking(OdomInfo last_rival, std::vector<OdomInfo>& Lidar_vec){
+    // Find the closest point with last rival frame in Lidar_vec
     double min_dis = 0;
     double dis = 0;
     int index = 0;
@@ -240,30 +243,43 @@ OdomInfo RivalMulti::tracking(OdomInfo last_rival, std::vector<OdomInfo>& Lidar_
         }
         i++;
     }
-
     double time_delay = ros::Time::now().toSec() - Lidar_vec.at(index).header.stamp.toSec();
+ 
     if(time_delay > time_out){
+        // Tracking time out, remove tracking boundary
         std::vector<OdomInfo>::iterator it;
         it = Lidar_vec.begin();
 
         output_vec.push_back(Lidar_vec[index]);
         Lidar_vec.erase(it+index);
-        printf("?-0-1-rival  time delay : %f\n",time_delay);
+        printf("%c-0-1-%s time delay : %f\n",rival_name.at(rival_name.size()-1),rival_name.c_str(), time_delay);
         return Lidar_vec[index];
     }
     else{
+        // Not time out check tracking boundary
         if(dis <= tracking_tole){
+            // Tracking successful
             std::vector<OdomInfo>::iterator it;
             it = Lidar_vec.begin();
 
             output_vec.push_back(Lidar_vec[index]);
             Lidar_vec.erase(it+index);
-            printf("?-0-1-rival  time delay : %f\n",time_delay);
+            printf("%c-0-1-%s time delay : %f\n",rival_name.at(rival_name.size()-1),rival_name.c_str(),time_delay);
             return Lidar_vec[index];
         }
+        // Obstacle object outside of tracking boundary, maybe not detect rival
         return last_rival;
     }
+    // if(time_delay <= time_out && dis > tracking_tole) return last_rival;
+    // else{
+    //     std::vector<OdomInfo>::iterator it;
+    //     it = Lidar_vec.begin();
 
+    //     output_vec.push_back(Lidar_vec[index]);
+    //     Lidar_vec.erase(it+index);
+    //     printf("%c-0-1-%s time delay : %f\n",rival_name.at(rival_name.size()-1),rival_name.c_str(),time_delay);
+    //     return Lidar_vec[index];
+    // }
 }
 
 
@@ -288,40 +304,32 @@ bool RivalMulti::publish_obstacle(std::vector<OdomInfo>& output_vec){
 bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vector<OdomInfo>& Lidar_vec){
     
     // ADD : publish other obstacle data to lidar obstacle topic
-    // obstacle_detector::Obstacles output_obstacles;
-    // output_obstacles.header.frame_id = "robot1/map";
-    // output_obstacles.header.stamp = ros::Time::now();
-    // for(auto obstacle : Lidar_vec){
-    //     obstacle_detector::CircleObstacle circle;
-    //     circle.center.x = obstacle.x;
-    //     circle.center.y = obstacle.y;
-    //     circle.velocity.x = obstacle.Vx;
-    //     circle.velocity.y = obstacle.Vy;
-    //     circle.radius = 0.1;
-    //     circle.true_radius = 0.12;
-    //     output_obstacles.circles.push_back(circle);
-    // }
-    // lidar_pub.publish(output_obstacles);
+
     output_vec.clear();
     bool boundary_ok = false;
     double time_delay;
 
     if(rival1_active){
         if(!rival1_ok){
-            if(Lidar_vec.size()==0)
-            {
+            if(Lidar_vec.size()==0){
+
+                // Lidar & tracker are not matched, but lidar_vec is empty. Still pub tracker
+                // Check tracker data (boundary & time_out)
+                
                 boundary_ok = boundary(rival1_odom.x, rival1_odom.y);
                 time_delay = ros::Time::now().toSec() - rival1_odom.header.stamp.toSec();
                 if(boundary_ok && time_delay < time_out){
                     output_vec.push_back(rival1_odom);
                     printf("1-1-0-rival1 time delay : %f\n",time_delay);
                 }
+                // Lidar & tracker is not available
                 else printf("1-0-0-rival1 localization failure\n");
             }
-            else last_rival1 = tracking(last_rival1, Lidar_vec);
+            else last_rival1 = tracking("rival1", last_rival1, Lidar_vec);
             rival1_ok = true;
         }
         else{
+            // Lidar & tracker are matched
             last_rival1 = rival1_odom;
             output_vec.push_back(rival1_odom);
         }
@@ -338,7 +346,7 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
                 }
                 else printf("2-0-0-rival2 localization failure\n");
             }
-            else last_rival2 = tracking(last_rival2, Lidar_vec);
+            else last_rival2 = tracking("rival2",last_rival2, Lidar_vec);
             rival2_ok = true;
         }
         else{
@@ -347,7 +355,7 @@ bool RivalMulti::distribute_rival_odom(bool rival1_ok, bool rival2_ok, std::vect
         }
     }
     publish_obstacle(output_vec);
-    return true;
+    return true;    
 }
 
 bool RivalMulti::boundary(double x, double y){
@@ -386,7 +394,8 @@ int main(int argc, char** argv){
             if(!distribute_ok) printf("distribute failure\n");
         }
         else{
-            printf("Just use the tracker data\n");
+            // Just use tracker data
+
             output_vec.clear();
             double time_delay1 = ros::Time::now().toSec() - rival1_odom.header.stamp.toSec();
             double time_delay2 = ros::Time::now().toSec() - rival2_odom.header.stamp.toSec();
