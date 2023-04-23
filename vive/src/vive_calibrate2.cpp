@@ -9,6 +9,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <std_srvs/SetBool.h>
+#include <std_msgs/Int64.h>
 
 
 typedef struct vivePose {
@@ -16,27 +17,31 @@ typedef struct vivePose {
     double W, X, Y, Z;
     double yaw, roll, pitch;
 }VIVEPOSE;
+struct xy {
+    double x, y;
+};
+typedef struct caliPose {
+    struct xy pt; //true position
+    struct xy pg; //the position you get before rotate-calibrate.
+}CALIPOSE;
 
 class Robot {
 public:
     Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l);
     void lookup_transform_from_map();
-    void publish_vive_pose();
     void print_pose(int unit_);
-    void ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg_);
     bool in_boundry(double x, double y);
     VIVEPOSE filter(VIVEPOSE raw_);
+    struct xy get_xy_before_rotate();
 private:
     ros::NodeHandle nh;
     ros::NodeHandle nh_;
-    ros::Publisher pose_pub;
-    ros::Subscriber ekf_sub;
     geometry_msgs::PoseWithCovarianceStamped pose;
     tf::TransformBroadcaster br;
     tf::TransformListener listener;
     tf::StampedTransform transform_from_map;
+    tf::StampedTransform transform_from_map_avg;
     tf::StampedTransform transform_from_tracker;
-    tf::StampedTransform transform_from_tracker_filter;
     std::string node_name_;
     std::string robot_name;
     std::string tracker_frame;
@@ -44,42 +49,29 @@ private:
     std::string robot_frame;
     std::string survive_prefix;
     bool has_tf;
-    bool match_ekf;
-    double covariance[36];
-    VIVEPOSE pose_raw;
-    VIVEPOSE pose_filter;
+    VIVEPOSE pose_from_map;
+    VIVEPOSE pose_from_map_filter;
+    VIVEPOSE pose_from_map_avg;
+    VIVEPOSE pose_from_map_avg_filter;
     VIVEPOSE rot_from_tracker;
-    double tole_with_ekf;
-    bool ekf_active;
     bool in_boundry_;
 };
 Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     nh = nh_g;
     nh_ = nh_l;
-    pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("vive_bonbonbon", 10);   //topic name: [ns of <group>]/vive_bonbonbon
-    ekf_sub = nh.subscribe("ekf_pose", 10, &Robot::ekf_sub_callback, this);
     node_name_ = ros::this_node::getName();
     bool ok = true;
     ok &= nh_.getParam("tracker", tracker_frame);       //path: under this node
     ok &= nh_.getParam("survive_prefix", survive_prefix);
     ok &= nh_.getParam("robot_name", robot_name);
-    ok &= nh_.getParam("tole_with_ekf", tole_with_ekf);
-    ok &= nh_.getParam("ekf_active", ekf_active);
     ok &= nh_.getParam("rot_from_tracker_W", rot_from_tracker.W);
     ok &= nh_.getParam("rot_from_tracker_X", rot_from_tracker.X);
     ok &= nh_.getParam("rot_from_tracker_Y", rot_from_tracker.Y);
     ok &= nh_.getParam("rot_from_tracker_Z", rot_from_tracker.Z);
-    ok &= nh_.getParam("covariance0", covariance[0]);
-    ok &= nh_.getParam("covariance7", covariance[7]);
-    ok &= nh_.getParam("covariance14", covariance[14]);
-    ok &= nh_.getParam("covariance21", covariance[21]);
-    ok &= nh_.getParam("covariance28", covariance[28]);
-    ok &= nh_.getParam("covariance35", covariance[35]);
 
     map_frame = survive_prefix + "map";
     robot_frame = robot_name + "_vivepose";
 
-    match_ekf = true;
     in_boundry_ = true;
     transform_from_tracker.setOrigin(tf::Vector3(0, 0, 0));
     transform_from_tracker.setRotation(tf::Quaternion(rot_from_tracker.X, rot_from_tracker.Y, rot_from_tracker.Z, rot_from_tracker.W));
@@ -106,80 +98,55 @@ void Robot::lookup_transform_from_map() {
         has_tf = false;
         std::cout << robot_name << ": connot lookup transform from " << map_frame << " to " << tracker_frame << std::endl;
     }
-    pose_raw.x = transform_from_map.getOrigin().getX();
-    pose_raw.y = transform_from_map.getOrigin().getY();
-    pose_raw.z = transform_from_map.getOrigin().getZ();
-    pose_raw.W = transform_from_map.getRotation().getW();
-    pose_raw.X = transform_from_map.getRotation().getX();
-    pose_raw.Y = transform_from_map.getRotation().getY();
-    pose_raw.Z = transform_from_map.getRotation().getZ();
+    try {
+        listener.lookupTransform(map_frame + "_avg", robot_frame, ros::Time(0), transform_from_map_avg);
+    }
+    catch (tf::TransformException& ex) {
+        has_tf = false;
+        std::cout << robot_name << ": connot lookup transform from " << map_frame + "_avg" << " to " << tracker_frame << std::endl;
+    }
+    pose_from_map.x = transform_from_map.getOrigin().getX();
+    pose_from_map.y = transform_from_map.getOrigin().getY();
+    pose_from_map.z = transform_from_map.getOrigin().getZ();
+    pose_from_map.W = transform_from_map.getRotation().getW();
+    pose_from_map.X = transform_from_map.getRotation().getX();
+    pose_from_map.Y = transform_from_map.getRotation().getY();
+    pose_from_map.Z = transform_from_map.getRotation().getZ();
 
-    pose_filter = filter(pose_raw);
-    in_boundry_ = in_boundry(pose_filter.x, pose_filter.y);
-}
-void Robot::publish_vive_pose() {
-    if (has_tf && match_ekf && in_boundry_) {
-        pose.pose.pose.orientation.w = pose_filter.W;
-        pose.pose.pose.orientation.x = pose_filter.X;
-        pose.pose.pose.orientation.y = pose_filter.Y;
-        pose.pose.pose.orientation.z = pose_filter.Z;
-        pose.pose.pose.position.x = pose_filter.x;
-        pose.pose.pose.position.y = pose_filter.y;
-        pose.pose.pose.position.z = pose_filter.z;
-        pose.header.stamp = ros::Time::now();
-        pose.header.frame_id = robot_name + "/vive_frame";
-        pose.pose.covariance[0] = covariance[0];
-        pose.pose.covariance[7] = covariance[7];
-        pose.pose.covariance[14] = covariance[14];
-        pose.pose.covariance[21] = covariance[21];
-        pose.pose.covariance[28] = covariance[28];
-        pose.pose.covariance[35] = covariance[35];
-        pose_pub.publish(pose);
-    }
-    else {
-        std::cout << robot_name << " did not publish vive_pose ";
-        if (!has_tf) std::cout << "(has no tf) ";
-        if (!match_ekf) std::cout << "(dose not match ekf) ";
-        if (!in_boundry_) std::cout << "(dose not in boundry) ";
-        std::cout << std::endl;
-    }
+    pose_from_map_avg.x = transform_from_map_avg.getOrigin().getX();
+    pose_from_map_avg.y = transform_from_map_avg.getOrigin().getY();
+    pose_from_map_avg.z = transform_from_map_avg.getOrigin().getZ();
+    pose_from_map_avg.W = transform_from_map_avg.getRotation().getW();
+    pose_from_map_avg.X = transform_from_map_avg.getRotation().getX();
+    pose_from_map_avg.Y = transform_from_map_avg.getRotation().getY();
+    pose_from_map_avg.Z = transform_from_map_avg.getRotation().getZ();
+
+    pose_from_map_filter = filter(pose_from_map);
+    pose_from_map_avg_filter = filter(pose_from_map_avg);
+    in_boundry_ = in_boundry(pose_from_map_avg_filter.x, pose_from_map_avg_filter.y);
 }
 void Robot::print_pose(int unit_) {
-    // transform_from_tracker_filter.setOrigin(tf::Vector3(pose_filter.x, pose_filter.y, pose_filter.z));
-    // transform_from_tracker_filter.setRotation(tf::Quaternion(pose_filter.X, pose_filter.Y, pose_filter.Z, pose_filter.W));
-    // br.sendTransform(tf::StampedTransform(transform_from_tracker_filter, ros::Time::now(), map_frame, robot_name + "/vive_frame"));
     if (has_tf) {
         std::cout << robot_name << "/vive_pose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z) ";
-        std::cout << std::setw(10) << std::setprecision(6) << pose_filter.x * unit_ << " ";
-        std::cout << std::setw(10) << std::setprecision(6) << pose_filter.y * unit_ << " ";
-        std::cout << std::setw(10) << std::setprecision(6) << pose_filter.z * unit_ << " ";
-        std::cout << std::setw(10) << std::setprecision(4) << pose_filter.W << " ";
-        std::cout << std::setw(10) << std::setprecision(4) << pose_filter.X << " ";
-        std::cout << std::setw(10) << std::setprecision(4) << pose_filter.Y << " ";
-        std::cout << std::setw(10) << std::setprecision(4) << pose_filter.Z << std::endl;
+        std::cout << std::setw(10) << std::setprecision(6) << pose_from_map_filter.x * unit_ << " ";
+        std::cout << std::setw(10) << std::setprecision(6) << pose_from_map_filter.y * unit_ << " ";
+        std::cout << std::setw(10) << std::setprecision(6) << pose_from_map_filter.z * unit_ << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_map_filter.W << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_map_filter.X << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_map_filter.Y << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_map_filter.Z << std::endl;
+
+        std::cout << robot_name << "/vive_pose_before_rotate: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z) ";
+        std::cout << std::setw(10) << std::setprecision(6) << pose_from_map_avg_filter.x * unit_ << " ";
+        std::cout << std::setw(10) << std::setprecision(6) << pose_from_map_avg_filter.y * unit_ << " ";
+        std::cout << std::setw(10) << std::setprecision(6) << pose_from_map_avg_filter.z * unit_ << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_map_avg_filter.W << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_map_avg_filter.X << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_map_avg_filter.Y << " ";
+        std::cout << std::setw(10) << std::setprecision(4) << pose_from_map_avg_filter.Z << std::endl;
     }
     else {
         std::cout << robot_name << "/" << map_frame << "->" << tracker_frame << " do not have tf." << std::endl;
-    }
-}
-void Robot::ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg_) {
-    match_ekf = true;
-    if (ekf_active) {
-        VIVEPOSE ekf_p;
-        ekf_p.x = msg_.pose.pose.position.x;
-        ekf_p.y = msg_.pose.pose.position.y;
-        // ekf_p.z = msg_.pose.pose.position.z;
-        // ekf_p.W = msg_.pose.pose.orientation.w;
-        // ekf_p.X = msg_.pose.pose.orientation.x;
-        // ekf_p.Y = msg_.pose.pose.orientation.y;
-        // ekf_p.Z = msg_.pose.pose.orientation.z;
-
-        double d = (double)sqrt(pow(ekf_p.x - pose_filter.x, 2) + pow(ekf_p.y - pose_filter.y, 2));
-        if (d > tole_with_ekf) {
-            match_ekf = false;
-            std::cout << robot_name << ": vivepose dose not match ekf. ";
-            std::cout << "ekf_pose(x y z)= (" << ekf_p.x << " " << ekf_p.y << " " << ekf_p.z << ") " << "d= " << d << std::endl;
-        }
     }
 }
 bool Robot::in_boundry(double x, double y) {
@@ -254,14 +221,22 @@ VIVEPOSE Robot::filter(VIVEPOSE raw_) {
         }
     }
     return raw[2];
-
 }
+struct xy Robot::get_xy_before_rotate() {
+    struct xy pnow;
+    pnow.x = pose_from_map_avg_filter.x;
+    pnow.y = pose_from_map_avg_filter.y;
+    return pnow;
+}
+
 
 int freq = 20;
 int unit = 1;
 std::string name_space;
 std::string node_name;
 bool world_is_running = true;
+int step;
+CALIPOSE p1, p2, p3, p4;
 
 void initialize(ros::NodeHandle nh_) {
     bool ok = true;
@@ -269,6 +244,24 @@ void initialize(ros::NodeHandle nh_) {
     name_space = ros::this_node::getNamespace();
     ok &= nh_.getParam("freq", freq);
     ok &= nh_.getParam("unit", unit);
+
+    ok &= nh_.getParam("P1/pos_true_x", p1.pt.x);
+    ok &= nh_.getParam("P1/pos_true_y", p1.pt.y);
+    ok &= nh_.getParam("P1/pos_get__x", p1.pg.x);
+    ok &= nh_.getParam("P1/pos_get__y", p1.pg.y);
+    ok &= nh_.getParam("P2/pos_true_x", p2.pt.x);
+    ok &= nh_.getParam("P2/pos_true_y", p2.pt.y);
+    ok &= nh_.getParam("P2/pos_get__x", p2.pg.x);
+    ok &= nh_.getParam("P2/pos_get__y", p2.pg.y);
+    ok &= nh_.getParam("P3/pos_true_x", p3.pt.x);
+    ok &= nh_.getParam("P3/pos_true_y", p3.pt.y);
+    ok &= nh_.getParam("P3/pos_get__x", p3.pg.x);
+    ok &= nh_.getParam("P3/pos_get__y", p3.pg.y);
+    ok &= nh_.getParam("P4/pos_true_x", p4.pt.x);
+    ok &= nh_.getParam("P4/pos_true_y", p4.pt.y);
+    ok &= nh_.getParam("P4/pos_get__x", p4.pg.x);
+    ok &= nh_.getParam("P4/pos_get__y", p4.pg.y);
+
     std::cout << "param: freq= " << freq << std::endl;
     std::cout << "param: unit= " << unit << std::endl;
     if (ok) {
@@ -289,6 +282,37 @@ bool run_srv_func(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& 
     res.success = true;
     return true;
 }
+void step_callback(const std_msgs::Int64& msg) {
+    step = msg.data;
+}
+void print_calipose(CALIPOSE p_) {
+    std::cout << "calibrating(x y): (" << p_.pt.x << " " << p_.pt.y << ")" << std::endl;
+}
+void dump_params(ros::NodeHandle nh_) {
+    nh_.setParam("P1/pos_get__x", p1.pg.x);
+    nh_.setParam("P1/pos_get__y", p1.pg.y);
+    nh_.setParam("P2/pos_get__x", p2.pg.x);
+    nh_.setParam("P2/pos_get__y", p2.pg.y);
+    nh_.setParam("P3/pos_get__x", p3.pg.x);
+    nh_.setParam("P3/pos_get__y", p3.pg.y);
+    nh_.setParam("P4/pos_get__x", p4.pg.x);
+    nh_.setParam("P4/pos_get__y", p4.pg.y);
+
+    nh_.deleteParam("robot_name");
+    nh_.deleteParam("survive_prefix");
+    nh_.deleteParam("tracker");
+    nh_.deleteParam("freq");
+    nh_.deleteParam("unit");
+    nh_.deleteParam("rot_from_tracker_W");
+    nh_.deleteParam("rot_from_tracker_X");
+    nh_.deleteParam("rot_from_tracker_Y");
+    nh_.deleteParam("rot_from_tracker_Z");
+
+    auto path = "rosparam dump ~/eurobot_localization_ws/src/Eurobot-Localization/vive/param/vive_calibrate.yaml vive_calibrate2";
+    system(path);
+    printf("dumped param to vive_claibrate.yaml\n");
+
+}
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "vive_trackerpose");
@@ -297,6 +321,7 @@ int main(int argc, char** argv) {
     initialize(nh_);
     ros::Rate rate(freq);
     ros::ServiceServer run_srv = nh.advertiseService("survive_world_is_running", run_srv_func);
+    ros::Subscriber step_sub = nh.subscribe("calibrate_step", 10, step_callback);
 
     Robot robot(nh, nh_);
 
@@ -306,8 +331,29 @@ int main(int argc, char** argv) {
                 robot.lookup_transform_from_map();
                 rate.sleep();
             }
-            robot.publish_vive_pose();
             robot.print_pose(unit);
+            switch (step) {
+            case 1:
+                print_calipose(p1);
+                p1.pg = robot.get_xy_before_rotate();
+                break;
+            case 2:
+                print_calipose(p2);
+                p2.pg = robot.get_xy_before_rotate();
+                break;
+            case 3:
+                print_calipose(p3);
+                p3.pg = robot.get_xy_before_rotate();
+                break;
+            case 4:
+                print_calipose(p4);
+                p4.pg = robot.get_xy_before_rotate();
+                break;
+            case 9:
+                break;
+            default:
+                break;
+            }
         }
         ros::spinOnce();
     }
