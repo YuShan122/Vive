@@ -248,6 +248,7 @@ void deleteParam()
 }
 tf::StampedTransform get_calibrate_tf(ros::NodeHandle nh_) {
     CALIPOSE calipos[4];
+    CALIPOSE calicen;
     double cos_[4], sin_[4], cos_avg, sin_avg, coshalf_, sinhalf_;
     tf::StampedTransform tf_rot_calibrate;
     double tf_x, tf_y;
@@ -270,11 +271,16 @@ tf::StampedTransform get_calibrate_tf(ros::NodeHandle nh_) {
     ok &= nh_.getParam("P4/pos_get__x", calipos[3].pg.x);
     ok &= nh_.getParam("P4/pos_get__y", calipos[3].pg.y);
 
+    calicen.pt.x = 1.5;
+    calicen.pt.y = 1.0;
+    calicen.pg.x = (double)(calipos[0].pg.x + calipos[1].pg.x + calipos[2].pg.x + calipos[3].pg.x) / 4;
+    calicen.pg.y = (double)(calipos[0].pg.y + calipos[1].pg.y + calipos[2].pg.y + calipos[3].pg.y) / 4;
+
     for (int i = 0; i < 4; i++) {
         calipos[i].pt.x = (double)calipos[i].pt.x - 1.5;
         calipos[i].pt.y = (double)calipos[i].pt.y - 1.0;
-        calipos[i].pg.x = (double)calipos[i].pg.x - 1.5;
-        calipos[i].pg.y = (double)calipos[i].pg.y - 1.0;
+        calipos[i].pg.x = (double)calipos[i].pg.x - calicen.pg.x;
+        calipos[i].pg.y = (double)calipos[i].pg.y - calicen.pg.y;
         calipos[i].pt.l = sqrt(pow(calipos[i].pt.x, 2) + pow(calipos[i].pt.y, 2));
         calipos[i].pg.l = sqrt(pow(calipos[i].pg.x, 2) + pow(calipos[i].pg.y, 2));
 
