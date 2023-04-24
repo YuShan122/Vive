@@ -32,6 +32,7 @@ public:
     void print_pose(int unit_);
     bool in_boundry(double x, double y);
     VIVEPOSE filter(VIVEPOSE raw_);
+    VIVEPOSE filter2(VIVEPOSE raw_);
     struct xy get_xy_before_rotate();
 private:
     ros::NodeHandle nh;
@@ -122,7 +123,7 @@ void Robot::lookup_transform_from_map() {
     pose_from_map_avg.Z = transform_from_map_avg.getRotation().getZ();
 
     pose_from_map_filter = filter(pose_from_map);
-    pose_from_map_avg_filter = filter(pose_from_map_avg);
+    pose_from_map_avg_filter = filter2(pose_from_map_avg);
     in_boundry_ = in_boundry(pose_from_map_avg_filter.x, pose_from_map_avg_filter.y);
 }
 void Robot::print_pose(int unit_) {
@@ -155,6 +156,74 @@ bool Robot::in_boundry(double x, double y) {
     return in;
 }
 VIVEPOSE Robot::filter(VIVEPOSE raw_) {
+    static VIVEPOSE raw0, raw1, raw2, raw3, raw4;
+    VIVEPOSE raw[5];
+    raw0 = raw1; raw1 = raw2; raw2 = raw3; raw3 = raw4; raw4 = raw_;
+    raw[0] = raw0; raw[1] = raw1; raw[2] = raw2; raw[3] = raw3; raw[4] = raw4;
+
+    // VIVEPOSE sum;
+    // sum.x = 0; sum.y = 0; sum.z = 0;
+    // sum.W = 0; sum.X = 0; sum.Y = 0; sum.Z = 0;
+    // for (int i = 0; i < 5; i++) {
+    //     sum.x += raw[i].x;
+    //     sum.y += raw[i].y;
+    //     sum.z += raw[i].z;
+    //     sum.W += raw[i].W;
+    //     sum.X += raw[i].X;
+    //     sum.Y += raw[i].Y;
+    //     sum.Z += raw[i].Z;
+    // }
+    // sum.x = (double)sum.x / 5;
+    // sum.y = (double)sum.y / 5;
+    // sum.z = (double)sum.z / 5;
+    // sum.W = (double)sum.W / 5;
+    // sum.X = (double)sum.X / 5;
+    // sum.Y = (double)sum.Y / 5;
+    // sum.Z = (double)sum.Z / 5;
+    // return sum;
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = i + 1; j < 4; j++) {
+            if (raw[i].x > raw[j].x) {
+                double x = raw[i].x;
+                raw[i].x = raw[j].x;
+                raw[j].x = x;
+            }
+            if (raw[i].y > raw[j].y) {
+                double y = raw[i].y;
+                raw[i].y = raw[j].y;
+                raw[j].y = y;
+            }
+            if (raw[i].z > raw[j].z) {
+                double z = raw[i].z;
+                raw[i].z = raw[j].z;
+                raw[j].z = z;
+            }
+            if (raw[i].X > raw[j].X) {
+                double X = raw[i].X;
+                raw[i].X = raw[j].X;
+                raw[j].X = X;
+            }
+            if (raw[i].Y > raw[j].Y) {
+                double Y = raw[i].Y;
+                raw[i].Y = raw[j].Y;
+                raw[j].Y = Y;
+            }
+            if (raw[i].Z > raw[j].Z) {
+                double Z = raw[i].Z;
+                raw[i].Z = raw[j].Z;
+                raw[j].Z = Z;
+            }
+            if (raw[i].W > raw[j].W) {
+                double W = raw[i].W;
+                raw[i].W = raw[j].W;
+                raw[j].W = W;
+            }
+        }
+    }
+    return raw[2];
+}
+VIVEPOSE Robot::filter2(VIVEPOSE raw_) {
     static VIVEPOSE raw0, raw1, raw2, raw3, raw4;
     VIVEPOSE raw[5];
     raw0 = raw1; raw1 = raw2; raw2 = raw3; raw3 = raw4; raw4 = raw_;
@@ -325,7 +394,7 @@ int main(int argc, char** argv) {
 
     Robot robot(nh, nh_);
 
-    while (ros::ok()) {
+    while (ros::ok() && step != 9) {
         if (world_is_running) {
             for (int i = 0; i < 5; i++) {
                 robot.lookup_transform_from_map();
@@ -349,8 +418,6 @@ int main(int argc, char** argv) {
                 print_calipose(p4);
                 p4.pg = robot.get_xy_before_rotate();
                 break;
-            case 9:
-                break;
             default:
                 break;
             }
@@ -358,6 +425,7 @@ int main(int argc, char** argv) {
         ros::spinOnce();
     }
 
+    dump_params(nh_);
     deleteParam();
     std::cout << "node: " << node_name << " closed." << std::endl;
 
