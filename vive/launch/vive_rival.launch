@@ -2,7 +2,7 @@
     <!-- <include file="$(find vive)/launch/vive_world.launch"/> -->
 
     <arg name="rival1_active" default="true"/>
-    <arg name="rival1_tracker" default="trackerD"/>
+    <arg name="rival1_tracker" default="trackerA"/>
     <arg name="rival2_active" default="false"/>
     <arg name="rival2_tracker" default="trackerB"/>
     <arg name="alpha_" default="0.4"/>
@@ -21,10 +21,10 @@
 
         <node name="vive_rival" pkg="vive" type="vive_rival" output="screen">
             <param name="tracker" type="string" value="$(arg rival1_tracker)"/>  <!-- need to check -->
-            <param name="map" type="string" value="survive3_map"/>  <!-- need to check -->
+            <param name="map" type="string" value="survive3_map_avg"/>  <!-- need to check -->
             <param name="world" type="string" value="survive3_world"/>  <!-- need to check -->
             <param name="topic_name" type="string" value="/rival1/odom/tracker"/>  <!-- need to check -->
-            
+            <param name="tracker_vel_topic" type="string" value="tracker_vel"/>
             <param name="alpha" type="double" value="$(arg alpha_)"/>
             <param name="del_vel" type="double" value="$(arg del_vel_)"/>
             <param name="tole" type="double" value="$(arg tole_)"/>
@@ -45,10 +45,11 @@
 
         <node name="vive_rival" pkg="vive" type="vive_rival" output="screen">
             <param name="tracker" type="string" value="$(arg rival2_tracker)"/>  <!-- need to check -->
-            <param name="map" type="string" value="survive4_map"/>  <!-- need to check -->
+            <param name="map" type="string" value="survive4_map_avg"/>  <!-- need to check -->
             <param name="world" type="string" value="survive4_world"/>  <!-- need to check -->
             <param name="topic_name" type="string" value="/rival2/odom/tracker"/>  <!-- need to check -->
-            
+            <param name="tracker_vel_topic" type="string" value="/rival2/tracker_vel"/>
+
             <param name="alpha" type="double" value="$(arg alpha_)"/>
             <param name="del_vel" type="double" value="$(arg del_vel_)"/>
             <param name="tole" type="double" value="$(arg tole_)"/>

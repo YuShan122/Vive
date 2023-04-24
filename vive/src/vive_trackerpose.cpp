@@ -22,6 +22,7 @@ public:
     Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l);
     void lookup_transform_from_map();
     void publish_vive_pose();
+    void publish_vive_raw_pose();
     void print_pose(int unit_);
     void ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg_);
     bool in_boundry(double x, double y);
@@ -29,6 +30,7 @@ public:
 private:
     ros::NodeHandle nh;
     ros::NodeHandle nh_;
+    ros::Publisher pose_raw_pub;
     ros::Publisher pose_pub;
     ros::Subscriber ekf_sub;
     geometry_msgs::PoseWithCovarianceStamped pose;
@@ -58,6 +60,7 @@ private:
 Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     nh = nh_g;
     nh_ = nh_l;
+    pose_raw_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("vive_raw",10);
     pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("vive_bonbonbon", 10);   //topic name: [ns of <group>]/vive_bonbonbon
     ekf_sub = nh.subscribe("ekf_pose", 10, &Robot::ekf_sub_callback, this);
     node_name_ = ros::this_node::getName();
@@ -133,6 +136,27 @@ void Robot::lookup_transform_from_map() {
 
     pose_filter = filter(pose_raw);
     in_boundry_ = in_boundry(pose_filter.x, pose_filter.y);
+}
+void Robot::publish_vive_raw_pose() {
+    geometry_msgs::PoseWithCovarianceStamped pose_;
+    if (has_tf && in_boundry_) {
+        pose_.pose.pose.orientation.w = pose_raw.W;
+        pose_.pose.pose.orientation.x = pose_raw.X;
+        pose_.pose.pose.orientation.y = pose_raw.Y;
+        pose_.pose.pose.orientation.z = pose_raw.Z;
+        pose_.pose.pose.position.x = pose_raw.x;
+        pose_.pose.pose.position.y = pose_raw.y;
+        pose_.pose.pose.position.z = pose_raw.z;
+        pose_.header.stamp = ros::Time::now();
+        pose_.header.frame_id = robot_name + "/vive_frame";
+        pose_.pose.covariance[0] = covariance[0];
+        pose_.pose.covariance[7] = covariance[7];
+        pose_.pose.covariance[14] = covariance[14];
+        pose_.pose.covariance[21] = covariance[21];
+        pose_.pose.covariance[28] = covariance[28];
+        pose_.pose.covariance[35] = covariance[35];
+        pose_raw_pub.publish(pose_);
+    }
 }
 void Robot::publish_vive_pose() {
     if (has_tf && match_ekf && in_boundry_) {
@@ -333,6 +357,7 @@ int main(int argc, char** argv) {
                 rate.sleep();
             }
             robot.publish_vive_pose();
+            robot.publish_vive_raw_pose();
             robot.print_pose(unit);
         }
         ros::spinOnce();

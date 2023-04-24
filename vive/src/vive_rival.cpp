@@ -50,6 +50,7 @@ private:
     std::string tracker_frame;
     std::string map_frame;
     std::string world_frame;
+    std::string tracker_vel_topic;
     
     tf::Vector3 twist_vel;
     tf::Vector3 twist_rot;
@@ -76,13 +77,14 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("map", map_frame);
     ok &= nh_local.getParam("world", world_frame);
     ok &= nh_local.getParam("topic_name", topic_name);
+    ok &= nh_local.getParam("tracker_vel_topic", tracker_vel_topic);
     ok &= nh_local.getParam("alpha", alpha);
     ok &= nh_local.getParam("del_vel", del_vel);
     ok &= nh_local.getParam("tole", tole);
     // ok &= nh_local.getParam("error_tole", error_tole);
     // ok &= nh_local.getParam("insurance_mode", insurance_mode);
 
-    vel_sub = nh.subscribe("tracker_vel",10, &Rival::vel_callback, this);
+    vel_sub = nh.subscribe(tracker_vel_topic,10, &Rival::vel_callback, this);
     pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
     error_pub = nh.advertise<std_msgs::Float64>(robot_name + "/error", 10);    
 
@@ -108,7 +110,9 @@ void Rival::trans_vel(){
     catch(tf::TransformException& ex) {ROS_ERROR("%s", ex.what());}
     in_rot = transform_SurviveWorldTomap.getBasis() * twist_rot;
     in_vel = transform_SurviveWorldTomap.getBasis() * twist_vel;
-
+    printf("%.3f, %.3f, %.3f\n", twist_vel[0], twist_vel[0], twist_vel[0]);
+    printf("%.3f, %.3f, %.3f\n",in_vel[0] , in_vel[1], in_vel[2]);
+    
     out_vel = lowpass_filter(in_vel);
     // if(insurance_mode){
     //     status = check_status(in_vel);
