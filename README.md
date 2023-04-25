@@ -69,7 +69,7 @@ rosrun vive vive_calibrate_contrl
   - `robot1_tracker` / `robot2_tracker`
   - `side` 
   - `ekf_` : running with ekf or not. If true, the program would compare the position of vive and ekf
-  - `print_world` : Print information of `vive_world` or not. Note: `SimpleApi logger` in `vive_world` would always print information.
+  - `print_world` : Print information of `vive_world` or not. Note: SimpleApi logger in `vive_world` would always print information.
 - Launch.
 ```bash=1
 roslaunch vive vive_trackerpose.launch
