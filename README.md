@@ -29,7 +29,7 @@ catkin_make -DCATKIN_WHITELIST_PACKAGES="vive"
 
 ## Calibration
 ### Getting LH->map
-- Open `vive/launch/vive_calibrate.launch`. Check and modify value of params: `calibrate_tracker` `side`.
+- Open `vive_calibrate.launch`. Check and modify value of params: `calibrate_tracker` `side`.
 - Put the tracker on the playground. 
   - Position: (1.5, 1.0) (the center of the playground), and 
   - Orientation: LED facing right shorter side of the playground(the line x=3). 
@@ -47,7 +47,7 @@ roslaunch vive vive_calibrate.launch
 - Press `ctrl`+`C` to stop the program. `vive/param/vive_calibrate.yaml` will be replaced by new calibration.
 
 ### Calibration of map_origin rotation
-- Open `vive/launch/vive_calibrate2.launch`, check and modify args: `side_` `tracker_`.
+- Open `vive_calibrate2.launch`, check and modify args: `side_` `tracker_`.
 - Put the tracker on the playground.
 - Launch.
 ```bash=1
