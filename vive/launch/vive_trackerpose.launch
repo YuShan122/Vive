@@ -1,13 +1,13 @@
 <launch>
-    <arg name="robot1_active" default="false"/>
-    <arg name="robot2_active" default="true"/>
-    <arg name="robot1_tracker" default="trackerD"/>
-    <arg name="robot2_tracker" default="trackerD"/>
-    <arg name="ekf_" default="false"/>
+    <arg name="robot1_active" default="true"/>
+    <arg name="robot2_active" default="false"/>
+    <arg name="robot1_tracker" default="trackerB"/>
+    <arg name="robot2_tracker" default="trackerB"/>
+    <arg name="ekf_" default="true"/>
     <arg name="tole_ekf" default="0.2"/>
     <arg name="frequency" default="100"/>  <!--the publishing freqency is this value divided by 5-->
     <arg name="print_unit" default="100"/>
-    <arg name="side" default="g"/>
+    <arg name="side" default="b"/>
     
     <group ns="robot1" if="$(arg robot1_active)">
         <include file="$(find vive)/launch/vive_world.launch">
