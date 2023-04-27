@@ -161,6 +161,8 @@ void Robot::publish_vive_pose() {
         pose_pub.publish(pose);
     }
     else {
+        ROS_INFO_THROTTLE(1, "%s did not publish vive_pose.", robot_name.c_str());
+        if(!has_tf) ROS_INFO_THROTTLE(1, "(has no tf)");
         std::cout << robot_name << " did not publish vive_pose ";
         if (!has_tf) std::cout << "(has no tf) ";
         if (!match_ekf) std::cout << "(dose not match ekf) ";
@@ -169,21 +171,14 @@ void Robot::publish_vive_pose() {
     }
 }
 void Robot::print_pose(int unit_) {
-    // transform_from_tracker_filter.setOrigin(tf::Vector3(pose_filter.x, pose_filter.y, pose_filter.z));
-    // transform_from_tracker_filter.setRotation(tf::Quaternion(pose_filter.X, pose_filter.Y, pose_filter.Z, pose_filter.W));
-    // br.sendTransform(tf::StampedTransform(transform_from_tracker_filter, ros::Time::now(), map_frame, robot_name + "/vive_frame"));
     if (has_tf) {
-        std::cout << robot_name << "/vive_pose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z) ";
-        std::cout << std::setw(10) << std::setprecision(6) << pose_filter.x * unit_ << " ";
-        std::cout << std::setw(10) << std::setprecision(6) << pose_filter.y * unit_ << " ";
-        std::cout << std::setw(10) << std::setprecision(6) << pose_filter.z * unit_ << " ";
-        std::cout << std::setw(10) << std::setprecision(4) << pose_filter.W << " ";
-        std::cout << std::setw(10) << std::setprecision(4) << pose_filter.X << " ";
-        std::cout << std::setw(10) << std::setprecision(4) << pose_filter.Y << " ";
-        std::cout << std::setw(10) << std::setprecision(4) << pose_filter.Z << std::endl;
+        ROS_INFO_THROTTLE(1, "%s/vive_pose: %s->%s(x y z W X Y Z) ", robot_frame.c_str(), map_frame.c_str(), tracker_frame.c_str());
+        ROS_INFO_THROTTLE(1, "%f %f %f %f %f %f %f\n", 
+            pose_filter.x * unit_, pose_filter.y * unit_, pose_filter.z * unit_, 
+            pose_filter.W, pose_filter.X, pose_filter.Y, pose_filter.Z);
     }
     else {
-        std::cout << robot_name << "/" << map_frame << "->" << tracker_frame << " do not have tf." << std::endl;
+        ROS_INFO_THROTTLE(1, "%s/%s->%s do not have tf.", robot_frame.c_str(), map_frame.c_str(), tracker_frame().c_str());
     }
 }
 void Robot::ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg_) {
@@ -201,8 +196,6 @@ void Robot::ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg
         double d = (double)sqrt(pow(ekf_p.x - pose_filter.x, 2) + pow(ekf_p.y - pose_filter.y, 2));
         if (d > tole_with_ekf) {
             match_ekf = false;
-            std::cout << robot_name << ": vivepose dose not match ekf. ";
-            std::cout << "ekf_pose(x y z)= (" << ekf_p.x << " " << ekf_p.y << " " << ekf_p.z << ") " << "d= " << d << std::endl;
         }
     }
 }
