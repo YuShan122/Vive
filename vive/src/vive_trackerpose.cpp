@@ -26,6 +26,7 @@ public:
     void print_pose(int unit_);
     void ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg_);
     bool in_boundry(double x, double y);
+    bool check_stable(VIVEPOSE p_);
     VIVEPOSE filter(VIVEPOSE raw_);
 private:
     ros::NodeHandle nh;
@@ -47,11 +48,13 @@ private:
     std::string survive_prefix;
     bool has_tf;
     bool match_ekf;
+    bool is_stable;
     double covariance[36];
     VIVEPOSE pose_raw;
     VIVEPOSE pose_filter;
     VIVEPOSE rot_from_tracker;
     double tole_with_ekf;
+    double tole_with_ekf_angle;
     bool ekf_active;
     bool in_boundry_;
 };
@@ -67,6 +70,7 @@ Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     ok &= nh_.getParam("survive_prefix", survive_prefix);
     ok &= nh_.getParam("robot_name", robot_name);
     ok &= nh_.getParam("tole_with_ekf", tole_with_ekf);
+    ok &= nh_.getParam("tole_with_ekf_angle", tole_with_ekf_angle);
     ok &= nh_.getParam("ekf_active", ekf_active);
     ok &= nh_.getParam("rot_from_tracker_W", rot_from_tracker.W);
     ok &= nh_.getParam("rot_from_tracker_X", rot_from_tracker.X);
@@ -85,7 +89,8 @@ Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     match_ekf = true;
     in_boundry_ = true;
     transform_from_tracker.setOrigin(tf::Vector3(0, 0, 0));
-    transform_from_tracker.setRotation(tf::Quaternion(rot_from_tracker.X, rot_from_tracker.Y, rot_from_tracker.Z, rot_from_tracker.W));
+    transform_from_tracker.setRotation(tf::Quaternion(
+        rot_from_tracker.X, rot_from_tracker.Y, rot_from_tracker.Z, rot_from_tracker.W));
 
     std::cout << "node: " << node_name_ << " getting parameters of the robot..." << std::endl;
     std::cout << "robot name: " << robot_name << std::endl;
@@ -107,7 +112,8 @@ void Robot::lookup_transform_from_map() {
     }
     catch (tf::TransformException& ex) {
         has_tf = false;
-        ROS_INFO_THROTTLE(1, "%s: cannot lookup transform from %s to %s.", robot_name, map_frame, tracker_frame);
+        ROS_INFO_THROTTLE(1, "%s: cannot lookup transform from %s to %s.",
+            robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
     }
     pose_raw.x = transform_from_map.getOrigin().getX();
     pose_raw.y = transform_from_map.getOrigin().getY();
@@ -119,6 +125,7 @@ void Robot::lookup_transform_from_map() {
 
     pose_filter = filter(pose_raw);
     in_boundry_ = in_boundry(pose_filter.x, pose_filter.y);
+    is_stable = check_stable(pose_filter);
 }
 void Robot::publish_vive_raw_pose() {
     geometry_msgs::PoseWithCovarianceStamped pose_;
@@ -142,7 +149,7 @@ void Robot::publish_vive_raw_pose() {
     }
 }
 void Robot::publish_vive_pose() {
-    if (has_tf && match_ekf && in_boundry_) {
+    if (has_tf && match_ekf && in_boundry_ && is_stable) {
         pose.pose.pose.orientation.w = pose_filter.W;
         pose.pose.pose.orientation.x = pose_filter.X;
         pose.pose.pose.orientation.y = pose_filter.Y;
@@ -161,20 +168,27 @@ void Robot::publish_vive_pose() {
         pose_pub.publish(pose);
     }
     else {
-        if (!has_tf) ROS_INFO_THROTTLE(1, "%s did not publish vive_pose. (has no tf)", robot_name.c_str());
-        if (!match_ekf) ROS_INFO_THROTTLE(1, "%s did not publish vive_pose. (dose not match ekf)", robot_name.c_str());
-        if (!in_boundry_) ROS_INFO_THROTTLE(1, "%s did not publish vive_pose. (dose not in boundry)", robot_name.c_str());
+        if (!has_tf) ROS_INFO_THROTTLE(1,
+            "%s did not publish vive_pose. (has no tf)", robot_name.c_str());
+        if (!match_ekf) ROS_INFO_THROTTLE(1,
+            "%s did not publish vive_pose. (not match ekf)", robot_name.c_str());
+        if (!in_boundry_) ROS_INFO_THROTTLE(1,
+            "%s did not publish vive_pose. (not in boundry)", robot_name.c_str());
+        if (!is_stable) ROS_INFO_THROTTLE(1,
+            "%s did not publish vive_pose. (not stable)", robot_name.c_str());
     }
 }
 void Robot::print_pose(int unit_) {
     if (has_tf) {
-        ROS_INFO_THROTTLE(1, "%s/vive_pose: %s->%s(x y z W X Y Z) ", robot_frame.c_str(), map_frame.c_str(), tracker_frame.c_str());
+        ROS_INFO_THROTTLE(1, "%s/vive_pose: %s->%s(x y z W X Y Z) ",
+            robot_frame.c_str(), map_frame.c_str(), tracker_frame.c_str());
         ROS_INFO_THROTTLE(1, "%f %f %f %f %f %f %f\n",
             pose_filter.x * unit_, pose_filter.y * unit_, pose_filter.z * unit_,
             pose_filter.W, pose_filter.X, pose_filter.Y, pose_filter.Z);
     }
     else {
-        ROS_INFO_THROTTLE(1, "%s/%s->%s do not have tf.", robot_frame.c_str(), map_frame.c_str(), tracker_frame().c_str());
+        ROS_INFO_THROTTLE(1, "%s/%s->%s do not have tf.",
+            robot_frame.c_str(), map_frame.c_str(), tracker_frame.c_str());
     }
 }
 void Robot::ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg_) {
@@ -183,22 +197,40 @@ void Robot::ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg
         VIVEPOSE ekf_p;
         ekf_p.x = msg_.pose.pose.position.x;
         ekf_p.y = msg_.pose.pose.position.y;
-        // ekf_p.z = msg_.pose.pose.position.z;
-        // ekf_p.W = msg_.pose.pose.orientation.w;
-        // ekf_p.X = msg_.pose.pose.orientation.x;
-        // ekf_p.Y = msg_.pose.pose.orientation.y;
-        // ekf_p.Z = msg_.pose.pose.orientation.z;
+        ekf_p.z = msg_.pose.pose.position.z;
+        ekf_p.W = msg_.pose.pose.orientation.w;
+        ekf_p.X = msg_.pose.pose.orientation.x;
+        ekf_p.Y = msg_.pose.pose.orientation.y;
+        ekf_p.Z = msg_.pose.pose.orientation.z;
 
         double d = (double)sqrt(pow(ekf_p.x - pose_filter.x, 2) + pow(ekf_p.y - pose_filter.y, 2));
-        if (d > tole_with_ekf) {
-            match_ekf = false;
-        }
+        if (d > tole_with_ekf) match_ekf = false;
+
+        pose_filter.yaw = (double)2 * acos(pose_filter.W) * 180 / 3.14159;
+        ekf_p.yaw = (double)2 * acos(ekf_p.W) * 180 / 3.14159;
+        if (pow((pose_filter.yaw - ekf_p.yaw), 2) > pow(tole_with_ekf_angle, 2)) match_ekf = false;
+
+        // ROS_INFO("yaw(vive/ekf): %f/%f", pose_filter.yaw, ekf_p.yaw);
     }
 }
 bool Robot::in_boundry(double x, double y) {
     bool in = false;
     if (x < 3 && x > 0 && y < 2 && y > 0) in = true;
     return in;
+}
+bool Robot::check_stable(VIVEPOSE p_) {
+    bool ok = true;
+    double cost = p_.W;
+    double sint = sqrt(1 - pow(cost, 2));
+    double rot_axis_x = p_.X / sint;
+    double rot_axis_y = p_.Y / sint;
+    double rot_axis_z = p_.Z / sint;
+    // ROS_INFO("rot_axis(x y z): %f %f %f", rot_axis_x, rot_axis_y, rot_axis_z);
+    // ROS_INFO("cost sint: %f %f", cost, sint);
+
+    if (rot_axis_z < 0.8) ok = false;
+
+    return (ok);
 }
 VIVEPOSE Robot::filter(VIVEPOSE raw_) {
     static VIVEPOSE raw0, raw1, raw2, raw3, raw4;
