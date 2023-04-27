@@ -58,7 +58,7 @@ private:
 Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     nh = nh_g;
     nh_ = nh_l;
-    pose_raw_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("vive_raw",10);
+    pose_raw_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("vive_raw", 10);
     pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("vive_bonbonbon", 10);   //topic name: [ns of <group>]/vive_bonbonbon
     ekf_sub = nh.subscribe("ekf_pose", 10, &Robot::ekf_sub_callback, this);
     node_name_ = ros::this_node::getName();
@@ -107,7 +107,7 @@ void Robot::lookup_transform_from_map() {
     }
     catch (tf::TransformException& ex) {
         has_tf = false;
-        std::cout << robot_name << ": connot lookup transform from " << map_frame << " to " << tracker_frame << std::endl;
+        ROS_INFO_THROTTLE(1, "%s: cannot lookup transform from %s to %s.", robot_name, map_frame, tracker_frame);
     }
     pose_raw.x = transform_from_map.getOrigin().getX();
     pose_raw.y = transform_from_map.getOrigin().getY();
@@ -122,14 +122,14 @@ void Robot::lookup_transform_from_map() {
 }
 void Robot::publish_vive_raw_pose() {
     geometry_msgs::PoseWithCovarianceStamped pose_;
-    if (has_tf && in_boundry_) {
-        pose_.pose.pose.orientation.w = pose_raw.W;
-        pose_.pose.pose.orientation.x = pose_raw.X;
-        pose_.pose.pose.orientation.y = pose_raw.Y;
-        pose_.pose.pose.orientation.z = pose_raw.Z;
-        pose_.pose.pose.position.x = pose_raw.x;
-        pose_.pose.pose.position.y = pose_raw.y;
-        pose_.pose.pose.position.z = pose_raw.z;
+    if (has_tf) {
+        pose_.pose.pose.orientation.w = pose_filter.W;
+        pose_.pose.pose.orientation.x = pose_filter.X;
+        pose_.pose.pose.orientation.y = pose_filter.Y;
+        pose_.pose.pose.orientation.z = pose_filter.Z;
+        pose_.pose.pose.position.x = pose_filter.x;
+        pose_.pose.pose.position.y = pose_filter.y;
+        pose_.pose.pose.position.z = pose_filter.z;
         pose_.header.stamp = ros::Time::now();
         pose_.header.frame_id = robot_name + "/vive_frame";
         pose_.pose.covariance[0] = covariance[0];
@@ -161,20 +161,16 @@ void Robot::publish_vive_pose() {
         pose_pub.publish(pose);
     }
     else {
-        ROS_INFO_THROTTLE(1, "%s did not publish vive_pose.", robot_name.c_str());
-        if(!has_tf) ROS_INFO_THROTTLE(1, "(has no tf)");
-        std::cout << robot_name << " did not publish vive_pose ";
-        if (!has_tf) std::cout << "(has no tf) ";
-        if (!match_ekf) std::cout << "(dose not match ekf) ";
-        if (!in_boundry_) std::cout << "(dose not in boundry) ";
-        std::cout << std::endl;
+        if (!has_tf) ROS_INFO_THROTTLE(1, "%s did not publish vive_pose. (has no tf)", robot_name.c_str());
+        if (!match_ekf) ROS_INFO_THROTTLE(1, "%s did not publish vive_pose. (dose not match ekf)", robot_name.c_str());
+        if (!in_boundry_) ROS_INFO_THROTTLE(1, "%s did not publish vive_pose. (dose not in boundry)", robot_name.c_str());
     }
 }
 void Robot::print_pose(int unit_) {
     if (has_tf) {
         ROS_INFO_THROTTLE(1, "%s/vive_pose: %s->%s(x y z W X Y Z) ", robot_frame.c_str(), map_frame.c_str(), tracker_frame.c_str());
-        ROS_INFO_THROTTLE(1, "%f %f %f %f %f %f %f\n", 
-            pose_filter.x * unit_, pose_filter.y * unit_, pose_filter.z * unit_, 
+        ROS_INFO_THROTTLE(1, "%f %f %f %f %f %f %f\n",
+            pose_filter.x * unit_, pose_filter.y * unit_, pose_filter.z * unit_,
             pose_filter.W, pose_filter.X, pose_filter.Y, pose_filter.Z);
     }
     else {
