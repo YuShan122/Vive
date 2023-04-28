@@ -185,6 +185,12 @@ target_link_libraries(api_simple_test ${LIBS}  ${catkin_LIBRARIES} )
 add_executable(vive_calibrate src/vive_calibrate.cpp)
 target_link_libraries(vive_calibrate ${LIBS}  ${catkin_LIBRARIES} )
 
+add_executable(vive_calibrate2 src/vive_calibrate2.cpp)
+target_link_libraries(vive_calibrate2 ${LIBS}  ${catkin_LIBRARIES} )
+
+add_executable(vive_calibrate_contrl src/vive_calibrate_contrl.cpp)
+target_link_libraries(vive_calibrate_contrl ${LIBS}  ${catkin_LIBRARIES} )
+
 add_executable(fake_ekf src/fake_ekf.cpp)
 target_link_libraries(fake_ekf ${LIBS}  ${catkin_LIBRARIES} )
 
