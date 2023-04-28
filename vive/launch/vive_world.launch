@@ -3,13 +3,13 @@
     <arg name="survive2_active" default="false"/>
     <arg name="survive3_active" default="false"/>
     <arg name="survive4_active" default="false"/>
-    <arg name="survive1_tracker" default="trackerD"/>
-    <arg name="survive2_tracker" default="trackerB"/>
-    <arg name="survive3_tracker" default="trackerB"/>
-    <arg name="survive4_tracker" default="trackerB"/>
-    <arg name="side_" default="b"/>
+    <arg name="survive1_tracker" default="trackerA"/>
+    <arg name="survive2_tracker" default="trackerD"/>
+    <arg name="survive3_tracker" default="trackerC"/>
+    <arg name="survive4_tracker" default="trackerD"/>
+    <arg name="side_" default="g"/>
     <arg name="map_tole" default="0.2"/>
-    <arg name="print_info" default="false"/>
+    <arg name="print_info" default="true"/>
     <arg name="freq_" default="100"/>
     <arg name="unit_" default="100"/>
 
