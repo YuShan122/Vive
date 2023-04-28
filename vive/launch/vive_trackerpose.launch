@@ -1,11 +1,12 @@
 <launch>
     <arg name="robot1_active" default="false" />
     <arg name="robot2_active" default="true" />
-    <arg name="robot1_tracker" default="trackerA" />
-    <arg name="robot2_tracker" default="trackerA" />
+    <arg name="robot1_tracker" default="trackerE" />
+    <arg name="robot2_tracker" default="trackerE" />
     <arg name="side" default="b" />
-    <arg name="ekf_" default="true" />
-    <arg name="tole_ekf" default="0.3" />
+    <arg name="ekf_" default="false" />
+    <arg name="tole_ekf" default="0.1" />
+    <arg name="tole_ekf_angle" default="10" />
     <arg name="frequency" default="100" />  <!--the
     publishing freqency is this value divided by 5-->
     <arg name="print_unit" default="100" />
@@ -26,6 +27,7 @@
             <param name="tracker" type="string" value="$(arg robot1_tracker)" />
             <param name="ekf_active" type="bool" value="$(arg ekf_)" />
             <param name="tole_with_ekf" type="double" value="$(arg tole_ekf)" />
+            <param name="tole_with_ekf_angle" type="double" value="$(arg tole_ekf_angle)" />
             <param name="freq" type="double" value="$(arg frequency)" />
             <param name="unit" type="double" value="$(arg print_unit)" />
             <param name="rot_from_tracker_W" type="double" value="0" />
@@ -60,22 +62,23 @@
             <param name="tracker" type="string" value="$(arg robot2_tracker)" />
             <param name="ekf_active" type="bool" value="$(arg ekf_)" />
             <param name="tole_with_ekf" type="double" value="$(arg tole_ekf)" />
+            <param name="tole_with_ekf_angle" type="double" value="$(arg tole_ekf_angle)" />
             <param name="freq" type="double" value="$(arg frequency)" />
             <param name="unit" type="double" value="$(arg print_unit)" />
             <param name="rot_from_tracker_W" type="double" value="0" />
             <param name="rot_from_tracker_X" type="double" value="1" />
             <param name="rot_from_tracker_Y" type="double" value="0" />
             <param name="rot_from_tracker_Z" type="double" value="0" />
-            <param name="covariance0" type="double" value="0.01" />
-            <param name="covariance7" type="double" value="0.01" />
-            <param name="covariance14" type="double" value="0.01" />
-            <param name="covariance21" type="double" value="0.01" />
-            <param name="covariance28" type="double" value="0.01" />
-            <param name="covariance35" type="double" value="0.01" />
+            <param name="covariance0" type="double" value="0.001" />
+            <param name="covariance7" type="double" value="0.001" />
+            <param name="covariance14" type="double" value="0.001" />
+            <param name="covariance21" type="double" value="0.001" />
+            <param name="covariance28" type="double" value="0.001" />
+            <param name="covariance35" type="double" value="0.001" />
         </node>
         <!-- <node pkg="vive" type="fake_ekf" name="fake_ekf">
-            <param name="fake_ekf_x" type="double" value="1.48"/>
-            <param name="fake_ekf_y" type="double" value="0.21"/>
+            <param name="fake_ekf_x" type="double" value="1.48" />
+            <param name="fake_ekf_y" type="double" value="0.21" />
         </node> -->
     </group>
 
