@@ -6,11 +6,11 @@
 # create a new catkin_workspace, if you need to.
 cd ~/catkin_workspace/src
 git clone -b vive-only https://github.com/DIT-ROBOTICS/Eurobot-Localization.git --recursive vive
+
 cd vive
-cd libsurvive
-sudo cp ./useful_files/81-vive.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && udevadm trigger
-make
+chmod 777 install_obstacle.sh
+./install_obstacle.sh
+
 # sudo apt-get install qtbase5-dev
 # sudo apt-get install qtdeclarative5-dev
 # sudo apt-get install libarmadillo-dev
