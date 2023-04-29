@@ -8,8 +8,8 @@ cd ~/catkin_workspace/src
 git clone -b vive-only https://github.com/DIT-ROBOTICS/Eurobot-Localization.git --recursive vive
 
 cd vive
-chmod 777 install_obstacle.sh
-./install_obstacle.sh
+chmod 777 vive_install.sh
+./vive_install.sh
 
 # sudo apt-get install qtbase5-dev
 # sudo apt-get install qtdeclarative5-dev
@@ -76,4 +76,12 @@ roslaunch vive vive_trackerpose.launch
 ```
 
 ### rival
-- To be edited.
+- Open `vive_rival.launch`, check and modify args: 
+  - `rival1_active` / `rival2_active` 
+  - `rival1_tracker` / `rival2_tracker`
+  - `side`
+  - `lowpass_active_` : to determined the lowpass filter active. 
+- Launch.
+```bash=1
+roslaunch vive vive_rival.launch
+```
