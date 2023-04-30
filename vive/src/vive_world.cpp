@@ -154,7 +154,8 @@ void ViveMap::lookup_tf_to_world(std::string wf_, tf::TransformListener& listene
         listener.lookupTransform(frame, wf_, ros::Time(0), tf_to_world);
     }
     catch (tf::TransformException& ex) {
-        printf("%s\n", ex.what());
+        ROS_WARN("cannot lookup tf from %s to %s.", frame.c_str(), wf_.c_str());
+        ROS_WARN("%s", ex.what());
         has_tf_to_world_ = false;
     }
     p_to_world.x = tf_to_world.getOrigin().getX();
@@ -333,16 +334,14 @@ ViveMap find_avg_map(ViveMap map0, ViveMap map1, ViveMap map2, bool* send_) {
     if ((d01 > max_distance_bt_maps && d20 > max_distance_bt_maps) || !map0.has_tf_to_world()) { ok0 = false; divisor--; }
     if ((d12 > max_distance_bt_maps && d01 > max_distance_bt_maps) || !map1.has_tf_to_world()) { ok1 = false; divisor--; }
     if ((d20 > max_distance_bt_maps && d12 > max_distance_bt_maps) || !map2.has_tf_to_world()) { ok2 = false; divisor--; }
-    if (print)
-        std::cout << "(ok0 ok1 ok2 divisor d01 d12 d20): "
-        << ok0 << " " << ok1 << " " << ok2 << " " << divisor << " "
-        << d01 << " " << d12 << " " << d20 << std::endl;
+    if (print) {
+        ROS_INFO_THROTTLE(1, "%s/(ok0 ok1 ok2 d01 d12 d20): %d %d %d %f %f %f",
+            world_frame.c_str(), ok0, ok1, ok2, d01, d12, d20);
+    }
 
     if (divisor == 0) {
-        if (print)
-            std::cout << world_frame << ": three maps do not match. ";
-        std::cout << "distances between maps(d01 d12 d20): "
-            << d01 << " " << d12 << " " << d20 << std::endl;
+        ROS_WARN_THROTTLE(1, "%s: did not send tf (map->world).", world_frame.c_str());
+        ROS_WARN_THROTTLE(1, "%s/(d01 d12 d20): %f %f %f", world_frame.c_str(), d01, d12, d20);
         divisor = 1;
         *send_ = false;
     }
@@ -430,16 +429,31 @@ int main(int argc, char** argv) {
             SurviveVelocity velocity;
             survive_simple_object_get_latest_pose(it, &pose);
             survive_simple_object_get_latest_velocity(it, &velocity);
-            if (print)
-                printf("%d, %d, %d, %s, %s, %u%, %f, %f, %f, %f, %f, %f, %f\n",
-                    survive_simple_is_running(actx),
-                    survive_simple_wait_for_update(actx),
-                    event.event_type,
+
+            if (print) {
+                ROS_INFO("event type: %d,", event.event_type);
+                ROS_INFO("object name: %s, serial number: %s, charge: %u%,",
                     survive_simple_object_name(it),
                     survive_simple_serial_number(it),
-                    survive_simple_object_charge_percet(it),
-                    pose.Pos[0], pose.Pos[1], pose.Pos[2],
+                    survive_simple_object_charge_percet(it));
+                ROS_INFO("position(x, y, z): (%f, %f, %f)",
+                    pose.Pos[0], pose.Pos[1], pose.Pos[2]);
+                ROS_INFO("orientation(W, X, Y, Z): (%f, %f, %f, %f)\n",
                     pose.Rot[0], pose.Rot[1], pose.Rot[2], pose.Rot[3]);
+            }
+
+            if (survive_simple_object_get_type(it) == SurviveSimpleObject_OBJECT) {
+                if (survive_simple_object_charge_percet(it) < 10)
+                    ROS_FATAL_THROTTLE(1, "%s/%s battery: %u, CHARGE THE TRACKER!!!",
+                        tracker.c_str(),
+                        survive_simple_serial_number(it),
+                        survive_simple_object_charge_percet(it));
+                else if (survive_simple_object_charge_percet(it) < 20)
+                    ROS_WARN_THROTTLE(1, "%s/%s battery: %u, please charge the tracker.",
+                        tracker.c_str(),
+                        survive_simple_serial_number(it),
+                        survive_simple_object_charge_percet(it));
+            }
 
             if (evt_type == SurviveSimpleEventType_PoseUpdateEvent) {
                 ViveDevice device(survive_prefix, survive_simple_serial_number(it));
@@ -467,13 +481,13 @@ int main(int argc, char** argv) {
         }
         if (evt_type_bf != SurviveSimpleEventType_None && evt_type == SurviveSimpleEventType_None) {
             run_srv.request.data = false;
-            if (run_client.call(run_srv))std::cout << "call service success, data = false." << std::endl;
-            else std::cout << "call service failed, data = false. " << run_srv.response.message << std::endl;
+            run_client.call(run_srv);
+            ROS_ERROR("%s: stop running.", world_frame.c_str());
         }
         if (evt_type_bf != SurviveSimpleEventType_PoseUpdateEvent && evt_type == SurviveSimpleEventType_PoseUpdateEvent) {
             run_srv.request.data = true;
-            if (run_client.call(run_srv)) std::cout << "call service success, data = true." << std::endl;
-            else std::cout << "call service failed, data = true. " << run_srv.response.message << std::endl;
+            run_client.call(run_srv);
+            ROS_INFO("%s: start running.", world_frame.c_str());
         }
         rate.sleep();
     }
