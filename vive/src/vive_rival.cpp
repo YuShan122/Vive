@@ -7,6 +7,7 @@
 #include <tf/transform_listener.h>
 #include <std_msgs/Float64.h>
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/Point.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -27,6 +28,7 @@ public:
     void vel_callback(const geometry_msgs::Twist::ConstPtr& msg);
     void lookup_transform_from_map();
     void publish_vive_pose(bool status);
+    void publish_tracker_vel_raw(tf::Vector3);
     void print_pose(int unit_);
     void trans_vel();
     tf::Vector3 lowpass_filter(tf::Vector3 in_vel);
@@ -36,6 +38,7 @@ private:
     ros::NodeHandle nh;
     ros::NodeHandle nh_local;
     ros::Subscriber vel_sub;
+    ros::Publisher vel_raw_pub;
     ros::Publisher pose_pub;
     ros::Publisher error_pub;
     // geometry_msgs::PoseWithCovarianceStamped pose;
@@ -43,6 +46,7 @@ private:
     tf::TransformListener listener;
     tf::StampedTransform transform_from_map;
     tf::StampedTransform transform_SurviveWorldTomap;
+
 
     std::string topic_name;
     std::string node_name_;
@@ -64,6 +68,7 @@ private:
     double tole;
     double error_tole;//in insurance_mode, error_tole between of tracker & lidar
 
+    bool lowpass_active = false;
     bool has_tf;
     VIVEPOSE poseV;
 };
@@ -81,12 +86,15 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("alpha", alpha);
     ok &= nh_local.getParam("del_vel", del_vel);
     ok &= nh_local.getParam("tole", tole);
+    ok &= nh_local.getParam("lowpass_active", lowpass_active);
+    
     // ok &= nh_local.getParam("error_tole", error_tole);
     // ok &= nh_local.getParam("insurance_mode", insurance_mode);
 
     vel_sub = nh.subscribe(tracker_vel_topic,10, &Rival::vel_callback, this);
     pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
-    error_pub = nh.advertise<std_msgs::Float64>(robot_name + "/error", 10);    
+    error_pub = nh.advertise<std_msgs::Float64>(robot_name + "/error", 10);
+    vel_raw_pub = nh.advertise<geometry_msgs::Point>("tracker_vel_raw", 10);    
 
     std::cout << node_name_ << " getting parameters of the robot...\n";
     std::cout << "robot name: " << robot_name << "\n";
@@ -110,10 +118,12 @@ void Rival::trans_vel(){
     catch(tf::TransformException& ex) {ROS_ERROR("%s", ex.what());}
     in_rot = transform_SurviveWorldTomap.getBasis() * twist_rot;
     in_vel = transform_SurviveWorldTomap.getBasis() * twist_vel;
-    printf("%.3f, %.3f, %.3f\n", twist_vel[0], twist_vel[0], twist_vel[0]);
-    printf("%.3f, %.3f, %.3f\n",in_vel[0] , in_vel[1], in_vel[2]);
-    
-    out_vel = lowpass_filter(in_vel);
+    // printf("%.3f, %.3f, %.3f\n", twist_vel[0], twist_vel[0], twist_vel[0]);
+    // printf("%.3f, %.3f, %.3f\n",in_vel[0] , in_vel[1], in_vel[2]);
+    publish_tracker_vel_raw(in_vel);
+
+    if(lowpass_active) out_vel = lowpass_filter(in_vel);
+    else out_vel = in_vel;
     // if(insurance_mode){
     //     status = check_status(in_vel);
     // }
@@ -178,8 +188,8 @@ void Rival::publish_vive_pose(bool status) {
     pose.header.stamp = ros::Time::now();
     pose.header.frame_id = tracker_frame;
     pose_pub.publish(pose);
-
 }
+
 void Rival::print_pose(int unit_) {
     poseV.x = transform_from_map.getOrigin().getX() * unit_;
     poseV.y = transform_from_map.getOrigin().getY() * unit_;
@@ -200,6 +210,13 @@ void Rival::print_pose(int unit_) {
     printf("%5.4f\n", pose.twist.twist.angular.z);
 }
 
+void Rival::publish_tracker_vel_raw(tf::Vector3 vel){
+    geometry_msgs::Point vel_raw;
+    vel_raw.x = vel.getX();
+    vel_raw.y = vel.getY();
+    vel_raw.z = vel.getZ();
+    vel_raw_pub.publish(vel_raw);
+}
 
 int freq = 20;
 int unit = 1;

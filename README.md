@@ -5,19 +5,15 @@
 ```bash=1
 # create a new catkin_workspace, if you need to.
 cd ~/catkin_workspace/src
-git clone -b vive https://github.com/DIT-ROBOTICS/Eurobot-Localization.git --recursive
-cd Eurobot-Localization
-./install.sh
-# (some error occured...)
-source ~/.bashrc
-sudo apt-get install qtbase5-dev
-sudo apt-get install qtdeclarative5-dev
-sudo apt-get install libarmadillo-dev
+git clone -b vive-only https://github.com/DIT-ROBOTICS/Eurobot-Localization.git --recursive vive
 
-cd libsurvive
-sudo cp ./useful_files/81-vive.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && udevadm trigger
-make
+cd vive
+chmod 777 vive_install.sh
+./vive_install.sh
+
+# sudo apt-get install qtbase5-dev
+# sudo apt-get install qtdeclarative5-dev
+# sudo apt-get install libarmadillo-dev
 ```
 
 ## complie
@@ -40,4 +36,15 @@ roslaunch vive vive_calibrate.launch
 - Run
 ```bash=1
 roslaunch vive vive_localization.launch
+```
+
+### rival
+- Open `vive_rival.launch`, check and modify args: 
+  - `rival1_active` / `rival2_active` 
+  - `rival1_tracker` / `rival2_tracker`
+  - `side`
+  - `lowpass_active_` : to determined the lowpass filter active. 
+- Launch.
+```bash=1
+roslaunch vive vive_rival.launch
 ```
