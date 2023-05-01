@@ -1,12 +1,12 @@
 <launch>
-    <arg name="robot1_active" default="false" />
-    <arg name="robot2_active" default="true" />
-    <arg name="robot1_tracker" default="trackerE" />
+    <arg name="robot1_active" default="true" />
+    <arg name="robot2_active" default="false" />
+    <arg name="robot1_tracker" default="trackerB" />
     <arg name="robot2_tracker" default="trackerE" />
     <arg name="side" default="b" />
-    <arg name="ekf_" default="false" />
-    <arg name="tole_ekf" default="0.1" />
-    <arg name="tole_ekf_angle" default="10" />
+    <arg name="ekf_" default="true" />
+    <arg name="tole_ekf" default="0.15" />
+    <arg name="tole_ekf_angle" default="30" />
     <arg name="frequency" default="100" />  <!--the
     publishing freqency is this value divided by 5-->
     <arg name="print_unit" default="100" />
