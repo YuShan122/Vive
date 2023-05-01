@@ -57,6 +57,7 @@ private:
     double tole_with_ekf_angle;
     bool ekf_active;
     bool in_boundry_;
+    int pub_count;
 };
 Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     nh = nh_g;
@@ -72,6 +73,7 @@ Robot::Robot(ros::NodeHandle nh_g, ros::NodeHandle nh_l) {
     ok &= nh_.getParam("tole_with_ekf", tole_with_ekf);
     ok &= nh_.getParam("tole_with_ekf_angle", tole_with_ekf_angle);
     ok &= nh_.getParam("ekf_active", ekf_active);
+    ok &= nh_.getParam("pub_count",pub_count);
     ok &= nh_.getParam("rot_from_tracker_W", rot_from_tracker.W);
     ok &= nh_.getParam("rot_from_tracker_X", rot_from_tracker.X);
     ok &= nh_.getParam("rot_from_tracker_Y", rot_from_tracker.Y);
@@ -152,6 +154,9 @@ void Robot::publish_vive_raw_pose() {
     }
 }
 void Robot::publish_vive_pose() {
+    if(has_tf && in_boundry_ && is_stable && pub_count > 0){
+        pub_count--;
+    }
     if (has_tf && match_ekf && in_boundry_ && is_stable) {
         pose.pose.pose.orientation.w = pose_filter.W;
         pose.pose.pose.orientation.x = pose_filter.X;
@@ -192,7 +197,7 @@ void Robot::print_pose(int unit_) {
 }
 void Robot::ekf_sub_callback(const geometry_msgs::PoseWithCovarianceStamped& msg_) {
     match_ekf = true;
-    if (ekf_active && has_tf) {
+    if (ekf_active && has_tf && pub_count == 0) {
         VIVEPOSE ekf_p;
         ekf_p.x = msg_.pose.pose.position.x;
         ekf_p.y = msg_.pose.pose.position.y;

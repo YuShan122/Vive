@@ -4,7 +4,8 @@
     <arg name="robot1_tracker" default="trackerE" />
     <arg name="robot2_tracker" default="trackerE" />
     <arg name="side" default="b" />
-    <arg name="ekf_" default="false" />
+    <arg name="ekf_" default="true" />
+    <arg name="pub_count_" default="100" />
     <arg name="tole_ekf" default="0.1" />
     <arg name="tole_ekf_angle" default="10" />
     <arg name="frequency" default="100" />  <!--the
@@ -26,6 +27,7 @@
             <param name="survive_prefix" type="string" value="survive1_" />
             <param name="tracker" type="string" value="$(arg robot1_tracker)" />
             <param name="ekf_active" type="bool" value="$(arg ekf_)" />
+            <param name="pub_count" type="int" value="$(arg pub_count_)" />
             <param name="tole_with_ekf" type="double" value="$(arg tole_ekf)" />
             <param name="tole_with_ekf_angle" type="double" value="$(arg tole_ekf_angle)" />
             <param name="freq" type="double" value="$(arg frequency)" />
@@ -61,6 +63,7 @@
             <param name="survive_prefix" type="string" value="survive2_" />
             <param name="tracker" type="string" value="$(arg robot2_tracker)" />
             <param name="ekf_active" type="bool" value="$(arg ekf_)" />
+            <param name="pub_count" type="int" value="$(arg pub_count_)" />
             <param name="tole_with_ekf" type="double" value="$(arg tole_ekf)" />
             <param name="tole_with_ekf_angle" type="double" value="$(arg tole_ekf_angle)" />
             <param name="freq" type="double" value="$(arg frequency)" />
@@ -76,10 +79,10 @@
             <param name="covariance28" type="double" value="0.001" />
             <param name="covariance35" type="double" value="0.001" />
         </node>
-        <!-- <node pkg="vive" type="fake_ekf" name="fake_ekf">
+        <node pkg="vive" type="fake_ekf" name="fake_ekf">
             <param name="fake_ekf_x" type="double" value="1.48" />
             <param name="fake_ekf_y" type="double" value="0.21" />
-        </node> -->
+        </node>
     </group>
 
 </launch>
