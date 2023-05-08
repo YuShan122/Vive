@@ -12,6 +12,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <std_srvs/SetBool.h>
+#include <std_msgs/Header.h>
 
 bool status = true; //tracker status 
 // bool insurance_mode;
@@ -22,6 +23,11 @@ typedef struct vivePose {
     double yaw, roll, pitch;
 }VIVEPOSE;
 
+typedef struct viveDiff{
+    double x,y;
+    std_msgs::Header header;
+}VIVEDIFF;
+
 class Rival {
 public:
     Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p);
@@ -29,9 +35,11 @@ public:
     void lookup_transform_from_map();
     void publish_vive_pose(bool status);
     void publish_tracker_vel_raw(tf::Vector3);
+    void publish_tracker_vel_diff(tf::Vector3);
     void print_pose(int unit_);
     void trans_vel();
     tf::Vector3 lowpass_filter(tf::Vector3 in_vel);
+    tf::Vector3 tracker_diff();
     bool check_status(tf::Vector3 in_vel);
 
 private:
@@ -39,6 +47,7 @@ private:
     ros::NodeHandle nh_local;
     ros::Subscriber vel_sub;
     ros::Publisher vel_raw_pub;
+    ros::Publisher vel_diff_pub;
     ros::Publisher pose_pub;
     ros::Publisher error_pub;
     // geometry_msgs::PoseWithCovarianceStamped pose;
@@ -62,6 +71,7 @@ private:
     tf::Vector3 in_rot;
     tf::Vector3 out_vel;
     tf::Vector3 last_out_vel;
+    tf::Vector3 diff_vel;
 
     double alpha;
     double del_vel;
@@ -71,6 +81,8 @@ private:
     bool lowpass_active = false;
     bool has_tf;
     VIVEPOSE poseV;
+    VIVEDIFF last_pose;
+    VIVEDIFF now_pose;
 };
 Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     nh = nh_g;
@@ -94,7 +106,8 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     vel_sub = nh.subscribe(tracker_vel_topic,10, &Rival::vel_callback, this);
     pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
     error_pub = nh.advertise<std_msgs::Float64>(robot_name + "/error", 10);
-    vel_raw_pub = nh.advertise<geometry_msgs::Point>("tracker_vel_raw", 10);    
+    vel_raw_pub = nh.advertise<geometry_msgs::Point>("tracker_vel_raw", 10);
+    vel_diff_pub = nh.advertise<geometry_msgs::Point>("tracker_vel_diff", 10);  
 
     std::cout << node_name_ << " getting parameters of the robot...\n";
     std::cout << "robot name: " << robot_name << "\n";
@@ -124,10 +137,8 @@ void Rival::trans_vel(){
 
     if(lowpass_active) out_vel = lowpass_filter(in_vel);
     else out_vel = in_vel;
-    // if(insurance_mode){
-    //     status = check_status(in_vel);
-    // }
 }
+
 tf::Vector3 Rival::lowpass_filter(tf::Vector3 in_vel){
     for(int i = 0; i<3; i++)
     {
@@ -139,19 +150,6 @@ tf::Vector3 Rival::lowpass_filter(tf::Vector3 in_vel){
     }
     return out_vel;
 }
-// bool Rival::check_status(tf::Vector3 in_vel){
-//     std_msgs::Float64 error;
-//     error.data = sqrt(pow(abs(in_vel[0]-last_out_vel[0]),2) + pow(abs(in_vel[1]-last_out_vel[1]), 2));
-//     error_pub.publish(error);
-//     if(error.data >= error_tole){
-//         ROS_WARN_STREAM("tracker failure !! change to lidar.");
-//         return false;
-//     }    
-//     else{
-//         return true;
-//     }  
-//     return true;
-// }
 
 void Rival::lookup_transform_from_map() {
     has_tf = listener.canTransform(map_frame, tracker_frame, ros::Time(0));
@@ -162,7 +160,22 @@ void Rival::lookup_transform_from_map() {
         printf("%s", ex.what());
         std::cout << "connot transform from " << map_frame << " to " << tracker_frame <<"\n";
     }
+    now_pose.x = transform_from_map.getOrigin().getX();
+    now_pose.y = transform_from_map.getOrigin().getY();
+    now_pose.header.stamp = ros::Time::now();
 }
+
+tf::Vector3 Rival::tracker_diff(){
+    tf::Vector3 vel_;
+    double dt;
+    dt = now_pose.header.stamp.toSec() - last_pose.header.stamp.toSec();
+    vel_[0] = (now_pose.x - last_pose.x)/dt;
+    vel_[1] = (now_pose.y - last_pose.y)/dt;
+    last_pose = now_pose;
+
+    return vel_;
+}
+
 void Rival::publish_vive_pose(bool status) {
     if (has_tf && status) {
         pose.header.frame_id = map_frame;
@@ -217,6 +230,13 @@ void Rival::publish_tracker_vel_raw(tf::Vector3 vel){
     vel_raw.z = vel.getZ();
     vel_raw_pub.publish(vel_raw);
 }
+void Rival::publish_tracker_vel_diff(tf::Vector3 vel){
+    geometry_msgs::Point vel_diff;
+    vel_diff.x = vel.getX();
+    vel_diff.y = vel.getY();
+    vel_diff.z = vel.getZ();
+    vel_diff_pub.publish(vel_diff);
+}
 
 int freq = 20;
 int unit = 1;
@@ -252,14 +272,17 @@ int main(int argc, char** argv) {
     ros::ServiceServer run_srv = nh.advertiseService("survive_world_is_running", run_srv_func);
     initialize(nh_);
     ros::Rate rate(freq);
-
+    
     Rival rival(nh, nh_);
 
+    tf::Vector3 diff_vel;
     while (ros::ok()) {
         ros::spinOnce();
         if (world_is_running) {
             rival.trans_vel();
             rival.lookup_transform_from_map();
+            diff_vel = rival.tracker_diff();
+            rival.publish_tracker_vel_diff(diff_vel);
             rival.publish_vive_pose(status);
             rival.print_pose(unit);
         }
