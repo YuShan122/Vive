@@ -225,7 +225,7 @@ void initialize(ros::NodeHandle nh_) {
     ok &= nh_.getParam("run_service_name", run_service_name);
     ok &= nh_.getParam("max_distance_bt_maps", max_distance_bt_maps);
     ok &= nh_.getParam("print", print);
-    ok &= nh_.getParam("side", side);
+    ok &= nh_.getParam("/side", side);
 
     std::cout << "param: freq= " << freq << std::endl;
     std::cout << "param: unit= " << unit << std::endl;

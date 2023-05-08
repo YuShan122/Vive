@@ -12,6 +12,7 @@
     <arg name="print_info" default="true" />
     <arg name="freq_" default="100" />
     <arg name="unit_" default="100" />
+    <param name="side" value="b"/>
 
     <group if="$(arg survive1_active)">
         <node name="vive_world" pkg="vive" type="vive_world" output="screen">
