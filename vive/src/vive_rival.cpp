@@ -28,17 +28,25 @@ typedef struct viveDiff{
     std_msgs::Header header;
 }VIVEDIFF;
 
+typedef struct lowpassVel{
+    tf::Vector3 out_vel;
+    tf::Vector3 last_vel;
+}LOWPASSVEL;
+
 class Rival {
 public:
     Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p);
     void vel_callback(const geometry_msgs::Twist::ConstPtr& msg);
     void lookup_transform_from_map();
-    void publish_vive_pose(bool status);
-    void publish_tracker_vel_raw(tf::Vector3);
-    void publish_tracker_vel_diff(tf::Vector3);
+
+    void publish_();
+    void publish_vive_pose(bool status, tf::Vector3 out_vel);
+    void publish_tracker_vel(tf::Vector3 vel, ros::Publisher vel_pub);
+
     void print_pose(int unit_);
+
     void trans_vel();
-    tf::Vector3 lowpass_filter(tf::Vector3 in_vel);
+    LOWPASSVEL lowpass(tf::Vector3 in_vel, tf::Vector3 last_out_vel);
     tf::Vector3 tracker_diff();
     bool check_status(tf::Vector3 in_vel);
 
@@ -50,12 +58,10 @@ private:
     ros::Publisher vel_diff_pub;
     ros::Publisher pose_pub;
     ros::Publisher error_pub;
-    // geometry_msgs::PoseWithCovarianceStamped pose;
     nav_msgs::Odometry pose;
     tf::TransformListener listener;
     tf::StampedTransform transform_from_map;
     tf::StampedTransform transform_SurviveWorldTomap;
-
 
     std::string topic_name;
     std::string node_name_;
@@ -69,9 +75,8 @@ private:
     tf::Vector3 twist_rot;
     tf::Vector3 in_vel;
     tf::Vector3 in_rot;
-    tf::Vector3 out_vel;
-    tf::Vector3 last_out_vel;
-    tf::Vector3 diff_vel;
+    LOWPASSVEL api_vel;
+    LOWPASSVEL diff_vel;
 
     double alpha;
     double del_vel;
@@ -80,8 +85,8 @@ private:
 
     bool lowpass_active = false;
     bool has_tf;
-    VIVEPOSE poseV;
-    VIVEDIFF last_pose;
+    VIVEPOSE poseV; // use to print tracker pose data
+    VIVEDIFF last_pose; // use to calculate the diff velocity
     VIVEDIFF now_pose;
 };
 Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
@@ -119,11 +124,11 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     else std::cout << node_name_ << " get parameters of robot failed.\n";
 }
 
-
 void Rival::vel_callback(const geometry_msgs::Twist::ConstPtr& msg){
     twist_vel.setValue(msg->linear.x, msg->linear.y, msg->linear.z);
     twist_rot.setValue(msg->angular.x, msg->angular.y, msg->angular.z);
 }
+
 void Rival::trans_vel(){
     try{
         listener.lookupTransform(map_frame, world_frame, ros::Time(0), transform_SurviveWorldTomap);
@@ -131,24 +136,24 @@ void Rival::trans_vel(){
     catch(tf::TransformException& ex) {ROS_ERROR("%s", ex.what());}
     in_rot = transform_SurviveWorldTomap.getBasis() * twist_rot;
     in_vel = transform_SurviveWorldTomap.getBasis() * twist_vel;
+
+    api_vel.out_vel = in_vel;
     // printf("%.3f, %.3f, %.3f\n", twist_vel[0], twist_vel[0], twist_vel[0]);
     // printf("%.3f, %.3f, %.3f\n",in_vel[0] , in_vel[1], in_vel[2]);
-    publish_tracker_vel_raw(in_vel);
-
-    if(lowpass_active) out_vel = lowpass_filter(in_vel);
-    else out_vel = in_vel;
 }
 
-tf::Vector3 Rival::lowpass_filter(tf::Vector3 in_vel){
-    for(int i = 0; i<3; i++)
+LOWPASSVEL Rival::lowpass(tf::Vector3 in_vel, tf::Vector3 last_vel){
+    LOWPASSVEL vel;
+    for(int i = 0; i<2; i++)
     {
-        if(abs(in_vel[i]-last_out_vel[i]) > del_vel){
-            in_vel[i] = last_out_vel[i];
+        if(abs(in_vel[i]-last_vel[i]) > del_vel){
+            in_vel[i] = last_vel[i];
         }
-        out_vel[i] = (1-alpha)*last_out_vel[i] + alpha*in_vel[i];
-        last_out_vel[i] = out_vel[i];
+        vel.out_vel[i] = (1-alpha)*last_vel[i] + alpha*in_vel[i];
+        last_vel[i] = vel.out_vel[i];
     }
-    return out_vel;
+    vel.last_vel = last_vel;
+    return vel;
 }
 
 void Rival::lookup_transform_from_map() {
@@ -165,6 +170,20 @@ void Rival::lookup_transform_from_map() {
     now_pose.header.stamp = ros::Time::now();
 }
 
+void Rival::publish_(){
+    // publish raw data of tracker velocity
+    publish_tracker_vel(api_vel.out_vel, vel_raw_pub);
+    if(lowpass_active) api_vel = lowpass(api_vel.out_vel, api_vel.last_vel);
+
+    // publish diff tracker velocity
+    diff_vel.out_vel = tracker_diff();
+    if(lowpass_active) diff_vel = lowpass(diff_vel.out_vel, diff_vel.last_vel);
+    publish_tracker_vel(diff_vel.out_vel, vel_diff_pub);
+    
+    // choose one velocity to publish (api or diff)
+    publish_vive_pose(status,api_vel.out_vel);
+}
+
 tf::Vector3 Rival::tracker_diff(){
     tf::Vector3 vel_;
     double dt;
@@ -176,7 +195,15 @@ tf::Vector3 Rival::tracker_diff(){
     return vel_;
 }
 
-void Rival::publish_vive_pose(bool status) {
+void Rival::publish_tracker_vel(tf::Vector3 vel, ros::Publisher vel_pub){
+    geometry_msgs::Point vel_;
+    vel_.x = vel.getX();
+    vel_.y = vel.getY();
+    vel_.z = vel.getZ();
+    vel_pub.publish(vel_);
+}
+
+void Rival::publish_vive_pose(bool status, tf::Vector3 out_vel) {
     if (has_tf && status) {
         pose.header.frame_id = map_frame;
         pose.header.frame_id = tracker_frame;
@@ -223,21 +250,6 @@ void Rival::print_pose(int unit_) {
     printf("%5.4f\n", pose.twist.twist.angular.z);
 }
 
-void Rival::publish_tracker_vel_raw(tf::Vector3 vel){
-    geometry_msgs::Point vel_raw;
-    vel_raw.x = vel.getX();
-    vel_raw.y = vel.getY();
-    vel_raw.z = vel.getZ();
-    vel_raw_pub.publish(vel_raw);
-}
-void Rival::publish_tracker_vel_diff(tf::Vector3 vel){
-    geometry_msgs::Point vel_diff;
-    vel_diff.x = vel.getX();
-    vel_diff.y = vel.getY();
-    vel_diff.z = vel.getZ();
-    vel_diff_pub.publish(vel_diff);
-}
-
 int freq = 20;
 int unit = 1;
 std::string node_name;
@@ -281,9 +293,7 @@ int main(int argc, char** argv) {
         if (world_is_running) {
             rival.trans_vel();
             rival.lookup_transform_from_map();
-            diff_vel = rival.tracker_diff();
-            rival.publish_tracker_vel_diff(diff_vel);
-            rival.publish_vive_pose(status);
+            rival.publish_();
             rival.print_pose(unit);
         }
         rate.sleep();
