@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 #include <malloc.h>
-#include "../libs/cnkalman/libs/cnmatrix/include/cnmatrix/cn_flt.h"
+#include "cn_flt.h"
 #include "math.h"
 #include "string.h"
 #include <assert.h>

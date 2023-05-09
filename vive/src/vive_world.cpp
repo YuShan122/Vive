@@ -91,7 +91,7 @@ public:
     ViveMap();
     ViveMap(std::string f_);
     ViveMap(std::string spf_, int od_);
-    void set_tf_from_lh(ros::NodeHandle nh_, std::string side_);
+    void set_tf_from_lh(ros::NodeHandle nh_, int side_);
     void send_tf_from_lh();
     void lookup_tf_to_world(std::string wf_, tf::TransformListener& listener);
     VIVEPOSE get_p_to_world(bool ok);
@@ -117,9 +117,10 @@ ViveMap::ViveMap(std::string spf_, int od_) {
     frame = spf_ + "map" + std::to_string(order);
     lh_frame = spf_ + "LH" + std::to_string(order);
 }
-void ViveMap::set_tf_from_lh(ros::NodeHandle nh_, std::string side_) {
+void ViveMap::set_tf_from_lh(ros::NodeHandle nh_, int side_) {
     bool ok = true;
-    if (strcmp(side_.c_str(), "g") == 0) {
+    // if (strcmp(side_.c_str(), "g") == 0) {
+    if (side_ == 1) { // side green
         ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_x", p_from_lh.x);
         ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_y", p_from_lh.y);
         ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_z", p_from_lh.z);
@@ -128,7 +129,8 @@ void ViveMap::set_tf_from_lh(ros::NodeHandle nh_, std::string side_) {
         ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_Y", p_from_lh.Y);
         ok &= nh_.getParam("Green/LH" + std::to_string(order) + "_Z", p_from_lh.Z);
     }
-    if (strcmp(side_.c_str(), "b") == 0) {
+    // if (strcmp(side_.c_str(), "b") == 0) {
+    if (side_ == 0) { // side blue
         ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_x", p_from_lh.x);
         ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_y", p_from_lh.y);
         ok &= nh_.getParam("Blue/LH" + std::to_string(order) + "_z", p_from_lh.z);
@@ -208,7 +210,7 @@ int freq;
 int unit;
 double max_distance_bt_maps;
 bool print = true;
-std::string side;
+int side;
 tf::StampedTransform tf_rot;
 
 /*globle functions*/
