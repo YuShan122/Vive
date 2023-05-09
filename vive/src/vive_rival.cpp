@@ -85,7 +85,7 @@ private:
     LOWPASSVEL api_vel;
     LOWPASSVEL diff_vel;
 
-    int print_freq = 1;
+    double print_freq = 1;
     double alpha;
     double del_vel;
     double tole;
@@ -256,16 +256,16 @@ void Rival::print_pose(int unit_) {
 
     if (has_tf) {
 
-        ROS_WARN_THROTTLE(print_freq,"%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
-        ROS_WARN_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
+        ROS_INFO_THROTTLE(print_freq,"%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
+        ROS_INFO_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
 
     }
-    else ROS_WARN_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
+    else ROS_INFO_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
     
-    ROS_WARN_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
-    ROS_WARN_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
-    ROS_WARN_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
-    ROS_WARN_THROTTLE(print_freq,"%4.2f\n", pose.twist.twist.angular.z);
+    ROS_INFO_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
+    ROS_INFO_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
+    ROS_INFO_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
+    ROS_INFO_THROTTLE(print_freq,"%4.2f\n", pose.twist.twist.angular.z);
 
 }
 
