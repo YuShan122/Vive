@@ -15,26 +15,33 @@
 #include <std_msgs/Header.h>
 
 bool status = true; //tracker status 
-// bool insurance_mode;
 
 typedef struct vivePose {
+
     double x, y, z;
     double W, X, Y, Z;
     double yaw, roll, pitch;
+
 }VIVEPOSE;
 
 typedef struct viveDiff{
+
     double x,y;
     std_msgs::Header header;
+
 }VIVEDIFF;
 
 typedef struct lowpassVel{
+
     tf::Vector3 out_vel;
     tf::Vector3 last_vel;
+
 }LOWPASSVEL;
 
 class Rival {
+
 public:
+
     Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p);
     void vel_callback(const geometry_msgs::Twist::ConstPtr& msg);
     void lookup_transform_from_map();
@@ -42,15 +49,14 @@ public:
     void publish_();
     void publish_vive_pose(bool status, tf::Vector3 out_vel);
     void publish_tracker_vel(tf::Vector3 vel, ros::Publisher vel_pub);
-
     void print_pose(int unit_);
 
     void trans_vel();
     LOWPASSVEL lowpass(tf::Vector3 in_vel, tf::Vector3 last_out_vel);
     tf::Vector3 tracker_diff();
-    bool check_status(tf::Vector3 in_vel);
 
 private:
+
     ros::NodeHandle nh;
     ros::NodeHandle nh_local;
     ros::Subscriber vel_sub;
@@ -58,6 +64,7 @@ private:
     ros::Publisher vel_diff_pub;
     ros::Publisher pose_pub;
     ros::Publisher error_pub;
+
     nav_msgs::Odometry pose;
     tf::TransformListener listener;
     tf::StampedTransform transform_from_map;
@@ -78,6 +85,7 @@ private:
     LOWPASSVEL api_vel;
     LOWPASSVEL diff_vel;
 
+    int print_freq = 1;
     double alpha;
     double del_vel;
     double tole;
@@ -88,12 +96,16 @@ private:
     VIVEPOSE poseV; // use to print tracker pose data
     VIVEDIFF last_pose; // use to calculate the diff velocity
     VIVEDIFF now_pose;
+
 };
+
 Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
+
     nh = nh_g;
     nh_local = nh_p;
     node_name_ = ros::this_node::getName();
     robot_name = ros::this_node::getNamespace();
+
     bool ok = true;
     ok &= nh_local.getParam("tracker", tracker_frame);       //path: under this node
     ok &= nh_local.getParam("map", map_frame);
@@ -104,9 +116,7 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("del_vel", del_vel);
     ok &= nh_local.getParam("tole", tole);
     ok &= nh_local.getParam("lowpass_active", lowpass_active);
-    
-    // ok &= nh_local.getParam("error_tole", error_tole);
-    // ok &= nh_local.getParam("insurance_mode", insurance_mode);
+    ok &= nh_local.getParam("print_freq", print_freq);
 
     vel_sub = nh.subscribe(tracker_vel_topic,10, &Rival::vel_callback, this);
     pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
@@ -117,8 +127,7 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     std::cout << node_name_ << " getting parameters of the robot...\n";
     std::cout << "robot name: " << robot_name << "\n";
     std::cout << "map frame: " << map_frame << "\n";
-    std::cout << "tracker: " << tracker_frame << "\n";
-    // std::cout << "insurance_mode: " << (bool(insurance_mode) ? "ON" : "OFF" )<<"\n"; 
+    std::cout << "tracker: " << tracker_frame << "\n"; 
 
     if (ok) std::cout << node_name_ << " get parameters of the robot sucessed.\n";
     else std::cout << node_name_ << " get parameters of robot failed.\n";
@@ -196,14 +205,17 @@ tf::Vector3 Rival::tracker_diff(){
 }
 
 void Rival::publish_tracker_vel(tf::Vector3 vel, ros::Publisher vel_pub){
+
     geometry_msgs::Point vel_;
     vel_.x = vel.getX();
     vel_.y = vel.getY();
     vel_.z = vel.getZ();
     vel_pub.publish(vel_);
+
 }
 
 void Rival::publish_vive_pose(bool status, tf::Vector3 out_vel) {
+
     if (has_tf && status) {
         pose.header.frame_id = map_frame;
         pose.header.frame_id = tracker_frame;
@@ -225,12 +237,15 @@ void Rival::publish_vive_pose(bool status, tf::Vector3 out_vel) {
     else{
         ROS_WARN_STREAM("tracker failure!!\nchange to lidar info"); 
     }
+
     pose.header.stamp = ros::Time::now();
     pose.header.frame_id = tracker_frame;
     pose_pub.publish(pose);
+
 }
 
 void Rival::print_pose(int unit_) {
+
     poseV.x = transform_from_map.getOrigin().getX() * unit_;
     poseV.y = transform_from_map.getOrigin().getY() * unit_;
     poseV.z = transform_from_map.getOrigin().getZ() * unit_;
@@ -238,47 +253,61 @@ void Rival::print_pose(int unit_) {
     poseV.X = transform_from_map.getRotation().getX() * unit_;
     poseV.Y = transform_from_map.getRotation().getY() * unit_;
     poseV.Z = transform_from_map.getRotation().getZ() * unit_;
+
     if (has_tf) {
-        std::cout << robot_name << "/" << "trackerpose: " << map_frame << "->" << tracker_frame << " (x y z W X Y Z)\n";
-        std::cout << poseV.x << " " << poseV.y << " " << poseV.z << " "
-            << poseV.W << " " << poseV.X << " " << poseV.Y << " " << poseV.Z << "\n";
+
+        ROS_WARN_THROTTLE(print_freq,"%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
+        ROS_WARN_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
+
     }
-    else std::cout << robot_name << "/" << map_frame << "->" << tracker_frame << " do not have tf.\n";
-    printf("%s tracker vel\n",robot_name.c_str());
-    printf("%5.1f, %5.1f, %5.1f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
-    printf("%s tracker rota\n",robot_name.c_str());
-    printf("%5.4f\n", pose.twist.twist.angular.z);
+    else ROS_WARN_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
+    
+    ROS_WARN_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
+    ROS_WARN_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
+    ROS_WARN_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
+    ROS_WARN_THROTTLE(print_freq,"%4.2f\n", pose.twist.twist.angular.z);
+
 }
+
 
 int freq = 20;
 int unit = 1;
 std::string node_name;
 bool world_is_running = true;
+
 void initialize(ros::NodeHandle nh_) {
+
     bool ok = true;
     node_name = ros::this_node::getName();
+
     ok &= nh_.getParam("freq", freq);
     ok &= nh_.getParam("unit", unit);
-    std::cout << "param: freq= " << freq << std::endl;
-    std::cout << "param: unit= " << unit << std::endl;
+    std::cout << "param: freq = " << freq << std::endl;
+    std::cout << "param: unit = " << unit << std::endl;
 
     if (ok) std::cout << "node: " << node_name << " get parameters of node sucessed.\n";
     else std::cout << "node: " << node_name << " get parameters of node failed.\n";
+
 }
 void deleteParam() {
+
     std::string deleteparam = "rosparam delete " + node_name;
     system(deleteparam.c_str());
     std::cout << "node: " << node_name << " parameters deleted" << std::endl;
+
 }
 
 bool run_srv_func(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) {
+
     world_is_running = req.data;
     res.success = true;
     return true;
+
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "vive_trackerpose");
+
+    ros::init(argc, argv, "vive_rival");
     ros::NodeHandle nh; //path: the ns of <group> of the launch file
     ros::NodeHandle nh_("~");   //path: this node
     ros::ServiceServer run_srv = nh.advertiseService("survive_world_is_running", run_srv_func);
@@ -289,18 +318,21 @@ int main(int argc, char** argv) {
 
     tf::Vector3 diff_vel;
     while (ros::ok()) {
+
         ros::spinOnce();
         if (world_is_running) {
+
             rival.trans_vel();
             rival.lookup_transform_from_map();
             rival.publish_();
             rival.print_pose(unit);
+
         }
         rate.sleep();
+
     }
 
     deleteParam();
     std::cout << "node: " << node_name << " closed.\n";
-
     return(0);
 }
