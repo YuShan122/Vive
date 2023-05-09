@@ -8,7 +8,7 @@
     <arg name="del_vel_" default="1.2"/>
     <arg name="tole_" default="0.1"/>
     <arg name="freq_" default="20"/>
-    <arg name="print_freq_" default="1"/>
+    <arg name="print_freq_" default="0.5"/>
     <arg name="unit_" default="1"/>
     <arg name="side" default="b"/>
     <arg name="print_info_" default="false"/>
@@ -33,7 +33,7 @@
             <param name="del_vel" type="double" value="$(arg del_vel_)"/>
             <param name="tole" type="double" value="$(arg tole_)"/>
 
-            <param name="print_freq" type="int" value="$(arg print_freq_)"/>
+            <param name="print_freq" type="double" value="$(arg print_freq_)"/>
             <param name="freq" type="int" value="$(arg freq_)"/>
             <param name="unit" type="int" value="$(arg unit_)"/>
         </node>
