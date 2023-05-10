@@ -53,6 +53,7 @@ public:
 
     void trans_vel();
     LOWPASSVEL lowpass(tf::Vector3 in_vel, tf::Vector3 last_out_vel);
+    LOWPASSVEL max_vel_limit(tf::Vector3 out_vel, tf::Vector3 last_vel);
     tf::Vector3 tracker_diff();
 
 private:
@@ -88,11 +89,14 @@ private:
     double print_freq = 1;
     double alpha;
     double del_vel;
+    double max_vel;
     double tole;
     double error_tole;//in insurance_mode, error_tole between of tracker & lidar
 
-    bool lowpass_active = false;
+    bool lowpass_active = true;
+    bool max_limit_active = true;
     bool has_tf;
+    bool print_active = false;
     VIVEPOSE poseV; // use to print tracker pose data
     VIVEDIFF last_pose; // use to calculate the diff velocity
     VIVEDIFF now_pose;
@@ -114,9 +118,12 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("tracker_vel_topic", tracker_vel_topic);
     ok &= nh_local.getParam("alpha", alpha);
     ok &= nh_local.getParam("del_vel", del_vel);
+    ok &= nh_local.getParam("max_vel", max_vel);
     ok &= nh_local.getParam("tole", tole);
     ok &= nh_local.getParam("lowpass_active", lowpass_active);
+    ok &= nh_local.getParam("max_limit_active", max_limit_active);
     ok &= nh_local.getParam("print_freq", print_freq);
+    ok &= nh_local.getParam("print_active", print_active);
     ok &= nh_local.getParam("print_active", print_active);
 
     vel_sub = nh.subscribe(tracker_vel_topic,10, &Rival::vel_callback, this);
@@ -154,13 +161,25 @@ void Rival::trans_vel(){
 
 LOWPASSVEL Rival::lowpass(tf::Vector3 in_vel, tf::Vector3 last_vel){
     LOWPASSVEL vel;
+    double accel[2];
     for(int i = 0; i<2; i++)
     {
-        if(abs(in_vel[i]-last_vel[i]) > del_vel){
+        accel[i] = abs(in_vel[i] - last_vel[i]);
+        if(accel[i] > del_vel && abs(in_vel[i]) < abs(last_vel[i])){
             in_vel[i] = last_vel[i];
         }
         vel.out_vel[i] = (1-alpha)*last_vel[i] + alpha*in_vel[i];
-        last_vel[i] = vel.out_vel[i];
+        vel.last_vel[i] = vel.out_vel[i];
+    }
+    return vel;
+}
+
+LOWPASSVEL Rival::max_vel_limit(tf::Vector3 out_vel, tf::Vector3 last_vel){
+    LOWPASSVEL vel;
+    for(int i = 0; i<2; i++){
+        if (abs(out_vel[i]) > max_vel)
+            vel.out_vel[i] = max_vel * (out_vel[i] / abs(out_vel[i]));
+        else vel.out_vel[i] = out_vel[i];
     }
     vel.last_vel = last_vel;
     return vel;
@@ -184,10 +203,12 @@ void Rival::publish_(){
     // publish raw data of tracker velocity
     publish_tracker_vel(api_vel.out_vel, vel_raw_pub);
     if(lowpass_active) api_vel = lowpass(api_vel.out_vel, api_vel.last_vel);
+    if(max_limit_active) api_vel = max_vel_limit(api_vel.out_vel, api_vel.last_vel);
 
     // publish diff tracker velocity
     diff_vel.out_vel = tracker_diff();
     if(lowpass_active) diff_vel = lowpass(diff_vel.out_vel, diff_vel.last_vel);
+    if(max_limit_active) diff_vel = max_vel_limit(diff_vel.out_vel, diff_vel.last_vel);
     publish_tracker_vel(diff_vel.out_vel, vel_diff_pub);
     
     // choose one velocity to publish (api or diff)
@@ -255,23 +276,35 @@ void Rival::print_pose(int unit_) {
     poseV.Y = transform_from_map.getRotation().getY() * unit_;
     poseV.Z = transform_from_map.getRotation().getZ() * unit_;
 
-    if (has_tf & print_active) {
+    if (has_tf & print_active && print_active) {
         printf("%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
         printf("%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
         printf("%s tracker vel\n",robot_name.c_str());
         printf("%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
         printf("%s tracker rota\n",robot_name.c_str());
         printf("%4.2f\n", pose.twist.twist.angular.z);
+        // printf("%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
+        printf("%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
+        printf("%s tracker vel\n",robot_name.c_str());
+        printf("%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
+        printf("%s tracker rota\n",robot_name.c_str());
+        printf("%4.2f\n", pose.twist.twist.angular.z);
         // ROS_INFO_THROTTLE(print_freq,"%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
-        // ROS_INFO_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
+        // // ROS_INFO_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
         // ROS_INFO_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
         // ROS_INFO_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
         // ROS_INFO_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
+        // ROS_INFO_THROTTLE(print_freq,"%4.2f\n", pose.twist.twist.angular.z);        // ROS_INFO_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
+        // ROS_INFO_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
+        // ROS_INFO_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
         // ROS_INFO_THROTTLE(print_freq,"%4.2f\n", pose.twist.twist.angular.z);
+
     }
     else ROS_INFO_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
     
     
+
+    else ROS_WARN_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
 
 }
 
