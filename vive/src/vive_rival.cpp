@@ -53,6 +53,7 @@ public:
 
     void trans_vel();
     LOWPASSVEL lowpass(tf::Vector3 in_vel, tf::Vector3 last_out_vel);
+    LOWPASSVEL max_vel_limit(tf::Vector3 out_vel, tf::Vector3 last_vel);
     tf::Vector3 tracker_diff();
 
 private:
@@ -88,10 +89,12 @@ private:
     double print_freq = 1;
     double alpha;
     double del_vel;
+    double max_vel;
     double tole;
     double error_tole;//in insurance_mode, error_tole between of tracker & lidar
 
-    bool lowpass_active = false;
+    bool lowpass_active = true;
+    bool max_limit_active = true;
     bool has_tf;
     bool print_active = false;
     VIVEPOSE poseV; // use to print tracker pose data
@@ -115,8 +118,10 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("tracker_vel_topic", tracker_vel_topic);
     ok &= nh_local.getParam("alpha", alpha);
     ok &= nh_local.getParam("del_vel", del_vel);
+    ok &= nh_local.getParam("max_vel", max_vel);
     ok &= nh_local.getParam("tole", tole);
     ok &= nh_local.getParam("lowpass_active", lowpass_active);
+    ok &= nh_local.getParam("max_limit_active", max_limit_active);
     ok &= nh_local.getParam("print_freq", print_freq);
     ok &= nh_local.getParam("print_active", print_active);
 
@@ -155,13 +160,24 @@ void Rival::trans_vel(){
 
 LOWPASSVEL Rival::lowpass(tf::Vector3 in_vel, tf::Vector3 last_vel){
     LOWPASSVEL vel;
+    double accel[2];
     for(int i = 0; i<2; i++)
     {
-        if(abs(in_vel[i]-last_vel[i]) > del_vel){
+        accel[i] = abs(in_vel[i] - last_vel[i]);
+        if(accel[i] > del_vel && abs(in_vel[i]) < abs(last_vel[i])){
             in_vel[i] = last_vel[i];
         }
         vel.out_vel[i] = (1-alpha)*last_vel[i] + alpha*in_vel[i];
-        last_vel[i] = vel.out_vel[i];
+        vel.last_vel[i] = vel.out_vel[i];
+    }
+    return vel;
+}
+
+LOWPASSVEL Rival::max_vel_limit(tf::Vector3 out_vel, tf::Vector3 last_vel){
+    LOWPASSVEL vel;
+    for(int i = 0; i<2; i++){
+        if(abs(out_vel[i])>max_vel)
+            vel.out_vel[i] = max_vel * (out_vel[i]/abs(out_vel[i]));
     }
     vel.last_vel = last_vel;
     return vel;
@@ -185,10 +201,12 @@ void Rival::publish_(){
     // publish raw data of tracker velocity
     publish_tracker_vel(api_vel.out_vel, vel_raw_pub);
     if(lowpass_active) api_vel = lowpass(api_vel.out_vel, api_vel.last_vel);
+    if(max_limit_active) api_vel = max_vel_limit(api_vel.out_vel, api_vel.last_vel);
 
     // publish diff tracker velocity
     diff_vel.out_vel = tracker_diff();
     if(lowpass_active) diff_vel = lowpass(diff_vel.out_vel, diff_vel.last_vel);
+    if(max_limit_active) diff_vel = max_vel_limit(diff_vel.out_vel, diff_vel.last_vel);
     publish_tracker_vel(diff_vel.out_vel, vel_diff_pub);
     
     // choose one velocity to publish (api or diff)
@@ -273,8 +291,6 @@ void Rival::print_pose(int unit_) {
 
     }
     else ROS_WARN_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
-    
-    
 
 }
 

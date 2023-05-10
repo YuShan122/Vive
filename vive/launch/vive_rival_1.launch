@@ -6,6 +6,7 @@
     <arg name="lowpass_active_" default="true"/>
     <arg name="alpha_" default="0.2"/>
     <arg name="del_vel_" default="1.2"/>
+    <arg name="max_vel_" default="1.5"/>
     <arg name="tole_" default="0.1"/>
     <arg name="freq_" default="20"/>
     <arg name="print_freq_" default="0.5"/>
@@ -32,6 +33,7 @@
             <param name="lowpass_active" type="bool" value="$(arg lowpass_active_)"/>
             <param name="alpha" type="double" value="$(arg alpha_)"/>
             <param name="del_vel" type="double" value="$(arg del_vel_)"/>
+            <param name="max_vel" type="double" value="$(arg max_vel_)"/>
             <param name="tole" type="double" value="$(arg tole_)"/>
 
             <param name="print_freq" type="double" value="$(arg print_freq_)"/>
