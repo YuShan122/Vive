@@ -163,10 +163,10 @@ LOWPASSVEL Rival::lowpass(tf::Vector3 in_vel, tf::Vector3 last_vel){
     double accel[2];
     for(int i = 0; i<2; i++)
     {
-        accel[i] = abs(in_vel[i] - last_vel[i]);
-        if(accel[i] > del_vel && abs(in_vel[i]) < abs(last_vel[i])){
-            in_vel[i] = last_vel[i];
-        }
+//        accel[i] = abs(in_vel[i] - last_vel[i]);
+//        if(accel[i] > del_vel && abs(in_vel[i]) < abs(last_vel[i])){
+//            in_vel[i] = last_vel[i];
+//        }
         vel.out_vel[i] = (1-alpha)*last_vel[i] + alpha*in_vel[i];
         vel.last_vel[i] = vel.out_vel[i];
     }
@@ -202,12 +202,12 @@ void Rival::publish_(){
     // publish raw data of tracker velocity
     publish_tracker_vel(api_vel.out_vel, vel_raw_pub);
     if(lowpass_active) api_vel = lowpass(api_vel.out_vel, api_vel.last_vel);
-    if(max_limit_active) api_vel = max_vel_limit(api_vel.out_vel, api_vel.last_vel);
+//    if(max_limit_active) api_vel = max_vel_limit(api_vel.out_vel, api_vel.last_vel);
 
     // publish diff tracker velocity
     diff_vel.out_vel = tracker_diff();
     if(lowpass_active) diff_vel = lowpass(diff_vel.out_vel, diff_vel.last_vel);
-    if(max_limit_active) diff_vel = max_vel_limit(diff_vel.out_vel, diff_vel.last_vel);
+    // if(max_limit_active) diff_vel = max_vel_limit(diff_vel.out_vel, diff_vel.last_vel);
     publish_tracker_vel(diff_vel.out_vel, vel_diff_pub);
     
     // choose one velocity to publish (api or diff)
