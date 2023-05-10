@@ -176,8 +176,9 @@ LOWPASSVEL Rival::lowpass(tf::Vector3 in_vel, tf::Vector3 last_vel){
 LOWPASSVEL Rival::max_vel_limit(tf::Vector3 out_vel, tf::Vector3 last_vel){
     LOWPASSVEL vel;
     for(int i = 0; i<2; i++){
-        if(abs(out_vel[i])>max_vel)
-            vel.out_vel[i] = max_vel * (out_vel[i]/abs(out_vel[i]));
+        if (abs(out_vel[i]) > max_vel)
+            vel.out_vel[i] = max_vel * (out_vel[i] / abs(out_vel[i]));
+        else vel.out_vel[i] = out_vel[i];
     }
     vel.last_vel = last_vel;
     return vel;
