@@ -11,7 +11,8 @@
     <arg name="print_freq_" default="0.5"/>
     <arg name="unit_" default="1"/>
     <arg name="side" default="b"/>
-    <arg name="print_info_" default="false"/>
+    <arg name="print_info_" default="false"/> <!-- vive_world -->
+    <arg name="print_active_" default="true"/> <!-- vive_rival -->
 
     <group ns="rival2" if="$(arg rival2_active)">
         <include file="$(find vive)/launch/vive_world.launch">
@@ -34,6 +35,7 @@
             <param name="tole" type="double" value="$(arg tole_)"/>
             
             <param name="print_freq" type="double" value="$(arg print_freq_)"/>
+            <param name="print_active" type="bool" value="$(arg print_active_)"/>
             <param name="freq" type="int" value="$(arg freq_)"/>
             <param name="unit" type="int" value="$(arg unit_)"/>
         </node>

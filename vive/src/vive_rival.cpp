@@ -93,6 +93,7 @@ private:
 
     bool lowpass_active = false;
     bool has_tf;
+    bool print_active = false;
     VIVEPOSE poseV; // use to print tracker pose data
     VIVEDIFF last_pose; // use to calculate the diff velocity
     VIVEDIFF now_pose;
@@ -117,6 +118,7 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("tole", tole);
     ok &= nh_local.getParam("lowpass_active", lowpass_active);
     ok &= nh_local.getParam("print_freq", print_freq);
+    ok &= nh_local.getParam("print_active", print_active);
 
     vel_sub = nh.subscribe(tracker_vel_topic,10, &Rival::vel_callback, this);
     pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
@@ -254,18 +256,25 @@ void Rival::print_pose(int unit_) {
     poseV.Y = transform_from_map.getRotation().getY() * unit_;
     poseV.Z = transform_from_map.getRotation().getZ() * unit_;
 
-    if (has_tf) {
+    if (has_tf && print_active) {
 
-        ROS_INFO_THROTTLE(print_freq,"%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
-        ROS_INFO_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
+        printf("%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
+        printf("%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
+        printf("%s tracker vel\n",robot_name.c_str());
+        printf("%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
+        printf("%s tracker rota\n",robot_name.c_str());
+        printf("%4.2f\n", pose.twist.twist.angular.z);
+        // ROS_INFO_THROTTLE(print_freq,"%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
+        // ROS_INFO_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
+        // ROS_INFO_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
+        // ROS_INFO_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
+        // ROS_INFO_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
+        // ROS_INFO_THROTTLE(print_freq,"%4.2f\n", pose.twist.twist.angular.z);
 
     }
-    else ROS_INFO_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
+    else ROS_WARN_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
     
-    ROS_INFO_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
-    ROS_INFO_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
-    ROS_INFO_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
-    ROS_INFO_THROTTLE(print_freq,"%4.2f\n", pose.twist.twist.angular.z);
+    
 
 }
 
