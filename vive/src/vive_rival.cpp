@@ -202,12 +202,12 @@ void Rival::publish_(){
     // publish raw data of tracker velocity
     publish_tracker_vel(api_vel.out_vel, vel_raw_pub);
     if(lowpass_active) api_vel = lowpass(api_vel.out_vel, api_vel.last_vel);
-//    if(max_limit_active) api_vel = max_vel_limit(api_vel.out_vel, api_vel.last_vel);
+   if(max_limit_active) api_vel = max_vel_limit(api_vel.out_vel, api_vel.last_vel);
 
     // publish diff tracker velocity
     diff_vel.out_vel = tracker_diff();
     if(lowpass_active) diff_vel = lowpass(diff_vel.out_vel, diff_vel.last_vel);
-    // if(max_limit_active) diff_vel = max_vel_limit(diff_vel.out_vel, diff_vel.last_vel);
+    if(max_limit_active) diff_vel = max_vel_limit(diff_vel.out_vel, diff_vel.last_vel);
     publish_tracker_vel(diff_vel.out_vel, vel_diff_pub);
     
     // choose one velocity to publish (api or diff)
@@ -289,7 +289,7 @@ void Rival::print_pose(int unit_) {
         printf("%s tracker rota\n",robot_name.c_str());
         printf("%4.2f\n", pose.twist.twist.angular.z);
         // ROS_INFO_THROTTLE(print_freq,"%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
-        // // ROS_INFO_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
+        // ROS_INFO_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
         // ROS_INFO_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
         // ROS_INFO_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
         // ROS_INFO_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
