@@ -124,7 +124,6 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("max_limit_active", max_limit_active);
     ok &= nh_local.getParam("print_freq", print_freq);
     ok &= nh_local.getParam("print_active", print_active);
-    ok &= nh_local.getParam("print_active", print_active);
 
     vel_sub = nh.subscribe(tracker_vel_topic,10, &Rival::vel_callback, this);
     pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
@@ -302,7 +301,6 @@ void Rival::print_pose(int unit_) {
     }
     else ROS_INFO_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
 }
-
 
 int freq = 20;
 int unit = 1;
