@@ -26,7 +26,7 @@
 
         <node name="vive_rival" pkg="vive" type="vive_rival" output="screen">
             <param name="tracker" type="string" value="$(arg rival2_tracker)"/>  <!-- need to check -->
-            <param name="map" type="string" value="survive4_map_avg"/>  <!-- need to check -->
+            <param name="map" type="string" value="survive4_map"/>  <!-- need to check -->
             <param name="world" type="string" value="survive4_world"/>  <!-- need to check -->
             <param name="topic_name" type="string" value="/rival2/odom/tracker"/>  <!-- need to check -->
             <param name="tracker_vel_topic" type="string" value="/rival2/tracker_vel"/>
