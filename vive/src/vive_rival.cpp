@@ -301,11 +301,6 @@ void Rival::print_pose(int unit_) {
 
     }
     else ROS_INFO_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
-    
-    
-
-    else ROS_WARN_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
-
 }
 
 
