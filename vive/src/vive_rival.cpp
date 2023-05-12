@@ -282,21 +282,7 @@ void Rival::print_pose(int unit_) {
         printf("%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
         printf("%s tracker rota\n",robot_name.c_str());
         printf("%4.2f\n", pose.twist.twist.angular.z);
-        // printf("%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
-        printf("%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
-        printf("%s tracker vel\n",robot_name.c_str());
-        printf("%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
-        printf("%s tracker rota\n",robot_name.c_str());
-        printf("%4.2f\n", pose.twist.twist.angular.z);
-        // ROS_INFO_THROTTLE(print_freq,"%s / trackerpose: %s -> %s (x y z)\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
-        // ROS_INFO_THROTTLE(print_freq,"%6.3f %6.3f %6.3f \n", poseV.x, poseV.y, poseV.z);
-        // ROS_INFO_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
-        // ROS_INFO_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
-        // ROS_INFO_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
-        // ROS_INFO_THROTTLE(print_freq,"%4.2f\n", pose.twist.twist.angular.z);        // ROS_INFO_THROTTLE(print_freq,"%s tracker vel\n",robot_name.c_str());
-        // ROS_INFO_THROTTLE(print_freq,"%4.2f, %4.2f, %4.2f\n", pose.twist.twist.linear.x, pose.twist.twist.linear.y, pose.twist.twist.linear.z);
-        // ROS_INFO_THROTTLE(print_freq,"%s tracker rota\n",robot_name.c_str());
-        // ROS_INFO_THROTTLE(print_freq,"%4.2f\n", pose.twist.twist.angular.z);
+
 
     }
     else ROS_INFO_THROTTLE(print_freq, "%s / %s -> %s do not have tf.\n", robot_name.c_str(), map_frame.c_str(), tracker_frame.c_str());
