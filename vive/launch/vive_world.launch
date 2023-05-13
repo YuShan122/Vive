@@ -10,7 +10,7 @@
     <arg name="side_" default="g" />
     <arg name="map_tole" default="0.2" />
     <arg name="print_info" default="true" />
-    <arg name="freq_" default="100" />
+    <arg name="freq_" default="40" />
     <arg name="unit_" default="100" />
     <param name="side" value="b"/>
 
