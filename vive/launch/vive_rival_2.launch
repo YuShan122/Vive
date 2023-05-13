@@ -15,6 +15,7 @@
     <arg name="side" default="b"/>
     <arg name="print_info_" default="false"/> <!-- vive_world -->
     <arg name="print_active_" default="true"/> <!-- vive_rival -->
+    <arg name="pub_debug_active_" default="false"/> <!-- vive_rival raw/diff velocity data pub -->
 
     <group ns="rival2" if="$(arg rival2_active)">
         <include file="$(find vive)/launch/vive_world.launch">
@@ -40,6 +41,7 @@
             
             <param name="print_freq" type="double" value="$(arg print_freq_)"/>
             <param name="print_active" type="bool" value="$(arg print_active_)"/>
+            <param name="pub_debug_active type="bool value="$(arg pub_debug_active_)"/>
             <param name="freq" type="int" value="$(arg freq_)"/>
             <param name="unit" type="int" value="$(arg unit_)"/>
         </node>

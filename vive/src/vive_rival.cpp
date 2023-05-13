@@ -95,6 +95,7 @@ private:
 
     bool lowpass_active = true;
     bool max_limit_active = true;
+    bool pub_debug_active = true;
     bool has_tf;
     bool print_active = false;
     VIVEPOSE poseV; // use to print tracker pose data
@@ -124,6 +125,7 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("max_limit_active", max_limit_active);
     ok &= nh_local.getParam("print_freq", print_freq);
     ok &= nh_local.getParam("print_active", print_active);
+    ok &= nh_local.getParam("pub_debug_active", pub_debug_active);
 
     vel_sub = nh.subscribe(tracker_vel_topic,10, &Rival::vel_callback, this);
     pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
@@ -202,7 +204,7 @@ void Rival::publish_(){
     // publish raw data of tracker velocity
     publish_tracker_vel(api_vel.out_vel, vel_raw_pub);
     if(lowpass_active) api_vel = lowpass(api_vel.out_vel, api_vel.last_vel);
-   if(max_limit_active) api_vel = max_vel_limit(api_vel.out_vel, api_vel.last_vel);
+    if(max_limit_active) api_vel = max_vel_limit(api_vel.out_vel, api_vel.last_vel);
 
     // publish diff tracker velocity
     diff_vel.out_vel = tracker_diff();
@@ -211,10 +213,11 @@ void Rival::publish_(){
     publish_tracker_vel(diff_vel.out_vel, vel_diff_pub);
     
     // choose one velocity to publish (api or diff)
-    publish_vive_pose(status,api_vel.out_vel);
+    publish_vive_pose(status,diff_vel.out_vel);
 }
 
 tf::Vector3 Rival::tracker_diff(){
+        
     tf::Vector3 vel_;
     double dt;
     dt = now_pose.header.stamp.toSec() - last_pose.header.stamp.toSec();
@@ -223,15 +226,18 @@ tf::Vector3 Rival::tracker_diff(){
     last_pose = now_pose;
 
     return vel_;
+
 }
 
 void Rival::publish_tracker_vel(tf::Vector3 vel, ros::Publisher vel_pub){
 
-    geometry_msgs::Point vel_;
-    vel_.x = vel.getX();
-    vel_.y = vel.getY();
-    vel_.z = vel.getZ();
-    vel_pub.publish(vel_);
+    if(pub_debug_active){
+            geometry_msgs::Point vel_;
+        vel_.x = vel.getX();
+        vel_.y = vel.getY();
+        vel_.z = vel.getZ();
+        vel_pub.publish(vel_);
+    }
 
 }
 
