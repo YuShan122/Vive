@@ -41,7 +41,7 @@
 
             <param name="print_freq" type="double" value="$(arg print_freq_)"/>
             <param name="print_active" type="bool" value="$(arg print_active_)"/>
-            <param name="pub_debug_active type="bool value="$(arg pub_debug_active_)"/>
+            <param name="pub_debug_active" type="bool" value="$(arg pub_debug_active_)"/>
             <param name="freq" type="int" value="$(arg freq_)"/>
             <param name="unit" type="int" value="$(arg unit_)"/>
         </node>
