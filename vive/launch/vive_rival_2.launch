@@ -16,6 +16,7 @@
     <arg name="print_info_" default="false"/> <!-- vive_world -->
     <arg name="print_active_" default="true"/> <!-- vive_rival -->
     <arg name="pub_debug_active_" default="false"/> <!-- vive_rival raw/diff velocity data pub -->
+    <arg name="pub_vel_category_" default="diff"/> <!-- vive_rival velocity category-->
 
     <group ns="rival2" if="$(arg rival2_active)">
         <include file="$(find vive)/launch/vive_world.launch">
@@ -38,6 +39,7 @@
             <param name="del_vel" type="double" value="$(arg del_vel_)"/>
             <param name="max_vel" type="double" value="$(arg max_vel_)"/>
             <param name="tole" type="double" value="$(arg tole_)"/>
+            <param name="pub_vel_category" type="string" value="$(arg pub_vel_category_)"/>
             
             <param name="print_freq" type="double" value="$(arg print_freq_)"/>
             <param name="print_active" type="bool" value="$(arg print_active_)"/>

@@ -78,6 +78,7 @@ private:
     std::string map_frame;
     std::string world_frame;
     std::string tracker_vel_topic;
+    std::string pub_vel_category;
     
     tf::Vector3 twist_vel;
     tf::Vector3 twist_rot;
@@ -126,6 +127,7 @@ Rival::Rival(ros::NodeHandle nh_g, ros::NodeHandle nh_p) {
     ok &= nh_local.getParam("print_freq", print_freq);
     ok &= nh_local.getParam("print_active", print_active);
     ok &= nh_local.getParam("pub_debug_active", pub_debug_active);
+    ok &= nh_local.getParam("pub_vel_category", pub_vel_category);
 
     vel_sub = nh.subscribe(tracker_vel_topic,10, &Rival::vel_callback, this);
     pose_pub = nh.advertise<nav_msgs::Odometry>(topic_name, 10);
@@ -192,7 +194,7 @@ void Rival::lookup_transform_from_map() {
         listener.lookupTransform(map_frame, tracker_frame, ros::Time(0), transform_from_map);
     }
     catch (tf::TransformException& ex) {
-        printf("%s", ex.what());
+        // printf("%s", ex.what());
         std::cout << "connot transform from " << map_frame << " to " << tracker_frame <<"\n";
     }
     now_pose.x = transform_from_map.getOrigin().getX();
@@ -213,7 +215,12 @@ void Rival::publish_(){
     publish_tracker_vel(diff_vel.out_vel, vel_diff_pub);
     
     // choose one velocity to publish (api or diff)
-    publish_vive_pose(status,diff_vel.out_vel);
+    if (strcmp(pub_vel_category.c_str(), "diff") == 0){
+        publish_vive_pose(status,diff_vel.out_vel);
+    }
+    else if (strcmp(pub_vel_category.c_str(), "api") == 0){
+        publish_vive_pose(status,api_vel.out_vel);
+    }
 }
 
 tf::Vector3 Rival::tracker_diff(){
