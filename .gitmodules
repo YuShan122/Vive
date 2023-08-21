@@ -1,7 +1,0 @@
-[submodule "cnmatrix"]
-	path = cnmatrix
-	url = https://github.com/YuShan122/cnmatrix.git
-
-[submodule "libsurvive"]
-	path = libsurvive
-	url = https://github.com/jingjingccc/libsurvive.git
