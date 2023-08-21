@@ -1,13 +1,14 @@
-# Eurobot-Localization
-> Eurobot localization workspace for 2023
+# Eurobot-Localization/Vive
+> Vive workspace for Eurobot
+> Contributors: Angus and YuShan
 
 ## Install
 ```bash=1
 # create a new catkin_workspace, if you need to.
 cd ~/catkin_workspace/src
-git clone -b vive-only https://github.com/DIT-ROBOTICS/Eurobot-Localization.git --recursive vive
+git clone git@github.com:YuShan122/Vive.git
 
-cd vive
+cd Vive
 chmod 777 vive_install.sh
 ./vive_install.sh
 
@@ -19,12 +20,11 @@ chmod 777 vive_install.sh
 ## complie
 ```bash=1
 cd ~/catkin_workspace
+catkin_make
+# if error occur, compile "obstacle_detector" first as follow:
 catkin_make -DCATKIN_WHITELIST_PACKAGES="obstacle_detector"
 catkin_make -DCATKIN_WHITELIST_PACKAGES="vive"
 ```
-將libsurvive內找不到路徑的handerfile改成絕對路徑（已經被改好了！如果編譯時沒有出現錯誤就不用改）
-應該會有三個以上的檔案要改：`linmath.h、cn_matrix.h、cn_matrix.hpp`
-> `../libs/cnkalman/libs/cnmatrix/include/cnmatrix/cn_matrix.h`
 
 ## Calibration
 ### Getting LH->map
