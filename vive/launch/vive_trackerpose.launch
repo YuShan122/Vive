@@ -1,10 +1,10 @@
 <launch>
     <arg name="robot1_active" default="true" />
     <arg name="robot2_active" default="false" />
-    <arg name="robot1_tracker" default="trackerB" />
+    <arg name="robot1_tracker" default="trackerC" />
     <arg name="robot2_tracker" default="trackerE" />
     <arg name="side" default="b" />
-    <arg name="ekf_" default="true" />
+    <arg name="ekf_" default="false" />
     <arg name="ekf_count_" default="100" />
     <arg name="tole_ekf" default="0.15" />
     <arg name="tole_ekf_angle" default="15" />

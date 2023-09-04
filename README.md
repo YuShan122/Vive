@@ -1,5 +1,6 @@
 # Eurobot-Localization/Vive
 > Vive workspace for Eurobot
+
 > Contributors: Angus and YuShan
 
 ## Install
@@ -28,6 +29,8 @@ catkin_make -DCATKIN_WHITELIST_PACKAGES="vive"
 
 ## Calibration
 ### Getting LH->map
+- Set up three lighthouses.
+- Check dump path in `vive_calibrate.cpp`, line 278. Remember `catkin_make` if the code is modified.
 - Open `vive_calibrate.launch`. Check and modify value of params: `calibrate_tracker` `side`.
 - Put the tracker on the playground. 
   - Position: (1.5, 1.0) (the center of the playground), and 
@@ -45,6 +48,8 @@ roslaunch vive vive_calibrate.launch
   ```
 - Press `ctrl`+`C` to stop the program. `vive/param/vive_calibrate.yaml` will be replaced by new calibration.
 ### Calibration of map_origin rotation
+- Set up three lighthouses.
+- Check dump path in `vive_calibrate2.cpp`, line 380. Remember `catkin_make` if the code is modified.
 - Open `vive_calibrate2.launch`, check and modify args: `side_` `tracker_`.
 - Put the tracker on the playground.
 - Launch.
@@ -64,21 +69,26 @@ rosrun vive vive_calibrate_contrl
 - Open `vive_trackerpose.launch`, check and modify args: 
   - `robot1_active` / `robot2_active` 
   - `robot1_tracker` / `robot2_tracker`
-  - `side` 
-  - `ekf_` : running with ekf or not. If true, the program would compare the position of vive and ekf
+  - `side` : 'g' or 'b'. Note: We didn't use this string param in EUROBOT2023, but an int param `/side`. 1 green, 0 blue. This param is set by other.
+  - `ekf_` : running with ekf or not. If true, the program would compare the position of vive and ekf.
   - `print_world` : Print information of `vive_world` or not. Note: SimpleApi logger in `vive_world` would always print information.
 - Launch.
 ```bash=1
+rosparam set /side 0 # blue, or
+rosparam set /side 1 # green
 roslaunch vive vive_trackerpose.launch
 ```
 
 ### rival
-- Open `vive_rival.launch`, check and modify args: 
+- Open `vive_rival_1.launch`/`vive_rival_2.launch`, check and modify args: 
   - `rival1_active` / `rival2_active` 
   - `rival1_tracker` / `rival2_tracker`
-  - `side`
+  - `side` : 'g' or 'b'. Note: We didn't use this string param in EUROBOT2023, but an int param `/side`. 1 green, 0 blue. This param is set by other.
   - `lowpass_active_` : to determined the lowpass filter active. 
 - Launch.
 ```bash=1
-roslaunch vive vive_rival.launch
+rosparam set /side 0 # blue, or
+rosparam set /side 1 # green
+roslaunch vive vive_rival_1.launch # or
+roslaunch vive vive_rival_2.launch
 ```

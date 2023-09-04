@@ -156,8 +156,8 @@ void ViveMap::lookup_tf_to_world(std::string wf_, tf::TransformListener& listene
         listener.lookupTransform(frame, wf_, ros::Time(0), tf_to_world);
     }
     catch (tf::TransformException& ex) {
-        ROS_WARN("cannot lookup tf from %s to %s.", frame.c_str(), wf_.c_str());
-        ROS_WARN("%s", ex.what());
+        ROS_WARN_THROTTLE(1, "cannot lookup tf from %s to %s.", frame.c_str(), wf_.c_str());
+        ROS_WARN_THROTTLE(1, "%s", ex.what());
         has_tf_to_world_ = false;
     }
     p_to_world.x = tf_to_world.getOrigin().getX();

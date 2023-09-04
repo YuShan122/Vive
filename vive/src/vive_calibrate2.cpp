@@ -377,7 +377,7 @@ void dump_params(ros::NodeHandle nh_) {
     nh_.deleteParam("rot_from_tracker_Y");
     nh_.deleteParam("rot_from_tracker_Z");
 
-    auto path = "rosparam dump ~/eurobot_localization_ws/src/Eurobot-Localization/vive/param/vive_calibrate.yaml vive_calibrate2";
+    auto path = "rosparam dump ~/localization2023/src/Vive/vive/param/vive_calibrate.yaml vive_calibrate2";
     system(path);
     printf("dumped param to vive_claibrate.yaml\n");
 
