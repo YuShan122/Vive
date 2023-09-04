@@ -275,7 +275,7 @@ void reloadParam(ros::NodeHandle nh_)
     nh_.deleteParam("dump_green");
     nh_.deleteParam("dump_blue");
 
-    auto path = "rosparam dump ~/localization2023/src/Vive/vive/param/vive_calibrate.yaml vive_calibrate";
+    auto path = "rosparam dump ~/localization2023/src/vive/vive/param/vive_calibrate.yaml vive_calibrate";
     system(path);
     printf("dumped param to vive_claibrate.yaml\n");
 
