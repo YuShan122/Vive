@@ -13,6 +13,7 @@ cd Vive
 chmod 777 vive_install.sh
 ./vive_install.sh
 
+# If error occurs
 # sudo apt-get install qtbase5-dev
 # sudo apt-get install qtdeclarative5-dev
 # sudo apt-get install libarmadillo-dev
@@ -22,7 +23,7 @@ chmod 777 vive_install.sh
 ```bash=1
 cd ~/catkin_workspace
 catkin_make
-# if error occur, compile "obstacle_detector" first as follow:
+# if error occurs, compile "obstacle_detector" first as follow:
 catkin_make -DCATKIN_WHITELIST_PACKAGES="obstacle_detector"
 catkin_make -DCATKIN_WHITELIST_PACKAGES="vive"
 ```
